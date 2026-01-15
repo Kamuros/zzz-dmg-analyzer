@@ -137,3 +137,18 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# --- Python / Backend Additions ---
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+instance/
+
+# --- Operating System & IDE ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
