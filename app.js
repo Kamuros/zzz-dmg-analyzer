@@ -101,10 +101,8 @@
       generic: num("dmgGenericPct"),
       attribute: num("dmgAttrPct"),
       skillType: num("dmgSkillTypePct"),
-      // Advanced/rare buckets are intentionally omitted from the UI.
-      // Keep them in the model at safe defaults for backward-compat.
-      other: 0,
-      vsStunned: 0,
+      other: num("dmgOtherPct"),
+      vsStunned: stunned ? num("dmgVsStunnedPct") : 0,
       anomaly: (mode === "anomaly" || mode === "hybrid") ? num("anomDmgPct") : 0,
       disorder: (mode === "anomaly" || mode === "hybrid") ? num("disorderDmgPct") : 0,
     };
@@ -116,13 +114,11 @@
 
       agent: {
         level: Math.max(1, Math.floor(num("agentLevel", 60))),
-        // UI uses Total ATK (in-combat). Keep legacy split fields but store as base + 0.
         atkBase: num("atkBase", 2000),
-        atkFlatBonus: 0,
+        atkFlatBonus: num("atkFlatBonus", 0),
         attribute: $("attribute").value,
         skillMultPct: num("skillMultPct", 300),
-        // Advanced/rare multiplier removed from UI
-        specialMult: 1,
+        specialMult: num("specialMult", 1),
 
         crit: {
           rate: clamp(num("critRatePct", 50) / 100, 0, 1),
@@ -138,17 +134,26 @@
         rupture: {
           sheerForce: Math.max(0, num("sheerForce")),
           sheerDmgBonusPct: num("sheerDmgBonusPct"),
-          // Removed from UI; keep for backward-compat but ignore in math by default
-          atkToSheerPct: 0
+          atkToSheerPct: num("atkToSheerPct")
         },
 
         anomaly: {
-          mastery: Math.max(0, num("anomMastery")),
-          proficiency: Math.max(0, num("anomProf")),
-          baseManual: Math.max(0, num("anomBaseManual")),
-          triggersPerRot: Math.max(0, num("anomTriggersPerRot")),
-          disorderTriggersPerRot: Math.max(0, num("disorderTriggersPerRot")),
-          specialMult: num("anomSpecialMult")
+          // AP (Anomaly Proficiency) directly scales anomaly damage: AP bonus = AP / 100.
+          proficiency: Math.max(0, num("anomProf", 0)),
+
+          type: $("anomType") ? $("anomType").value : "auto",
+
+          // Frequency inputs (needed for per-rotation totals)
+          triggersPerRot: Math.max(0, num("anomTriggersPerRot", 0)),
+          disorderTriggersPerRot: Math.max(0, num("disorderTriggersPerRot", 0)),
+
+          // Advanced/legacy fields (not shown in UI). Kept for backward-compat.
+          mastery: 0,
+          baseManual: 0,
+          procCount: 1,
+          durationSec: 10,
+          allowCrit: false,
+          specialMult: 1
         }
       },
 
@@ -165,16 +170,14 @@
         },
 
         defReductionPct: num("defReductionPct", 0),
-        // Overrides removed from UI
-        defMultOverride: null,
-        enemyDmgTakenMult: null,
+        defMultOverride: optNum("defMultOverride"),
+        enemyDmgTakenMult: optNum("enemyDmgTakenMult"),
 
         dmgTakenPct: num("dmgTakenPct", 0),
         stunned,
         stunPct: num("stunPct", 100),
-        // Advanced/rare stunned-only modifiers removed from UI
-        dmgTakenStunnedPct: 0,
-        dazeVulnMult: 1
+        dmgTakenStunnedPct: stunned ? num("dmgTakenStunnedPct", 0) : 0,
+        dazeVulnMult: num("dazeVulnMult", 1)
       },
 
       meta: { updatedAt: new Date().toISOString() }
@@ -209,14 +212,18 @@
     const resPct = (i.enemy.resAllPct || 0) + ((i.enemy.resByAttr && i.enemy.resByAttr[attr]) || 0);
     const resMult = 1 - (resPct / 100);
 
-    // Always use computed DEF multiplier (override removed from UI and ignored for simplicity).
-    const defMult = computeDefMult(i);
+    const defMult = (i.enemy.defMultOverride !== null && i.enemy.defMultOverride !== undefined)
+      ? clamp(i.enemy.defMultOverride, 0, 1)
+      : computeDefMult(i);
 
-    // Only keep the standard vulnerability input.
-    const dmgTakenMult = pctToMult(i.enemy.dmgTakenPct);
+    const dmgTakenPctTotal = i.enemy.dmgTakenPct + i.enemy.dmgTakenStunnedPct;
+    const dmgTakenMultOverride = (i.enemy.enemyDmgTakenMult !== null && i.enemy.enemyDmgTakenMult !== undefined)
+      ? Math.max(0, i.enemy.enemyDmgTakenMult)
+      : 1;
+    const dmgTakenMult = pctToMult(dmgTakenPctTotal) * dmgTakenMultOverride;
 
     const stunMult = i.enemy.stunned ? (i.enemy.stunPct / 100) : 1;
-    const dazeVulnMult = 1;
+    const dazeVulnMult = i.enemy.stunned ? i.enemy.dazeVulnMult : 1;
 
     const specialMult = i.agent.specialMult;
 
@@ -263,33 +270,95 @@
     const critTotal = critPerHit;
     const expectedTotal = expectedPerHit;
 
-    const anomalyMult = pctToMult(i.agent.dmgBuckets.anomaly || 0);
-    const disorderMult = pctToMult(i.agent.dmgBuckets.disorder || 0);
+    // ===== Anomaly / Disorder (ZZZ-style approximation) =====
+    // Community formula summary:
+    // Outgoing Anomaly DMG = Base * DMG% * DEF * RES * DMG Taken * Stun * (AP/100) * BuffLevelMult
 
-    // Anomaly type defaults (used only for per-proc/tick display; total is still based on Base Anomaly DMG)
-    const anomType = (i.agent.anomaly.type === "auto")
-      ? ({
-          physical: "assault",
-          fire: "burn",
-          electric: "shock",
-          ice: "shatter",
-          ether: "corruption",
-        }[i.agent.attribute] || "assault")
-      : i.agent.anomaly.type;
+    const resolveAnomType = (attr, t) => {
+      if (t && t !== "auto") return t;
+      return ({
+        physical: "assault",
+        fire: "burn",
+        electric: "shock",
+        ice: "shatter",
+        ether: "corruption",
+      }[attr] || "assault");
+    };
 
+    // Base multipliers per anomaly type (per proc/tick/hit)
+    const ANOM_MV_PER_PROC = {
+      burn: 0.50,        // 50% * ATK per tick
+      shock: 1.25,       // 125% * ATK per tick
+      corruption: 0.625, // 62.5% * ATK per tick
+      shatter: 5.00,     // 500% * ATK once
+      assault: 7.13      // 713% * ATK once
+    };
+
+    // Default proc counts for a full trigger window (no timing UI):
+    // Burn/Corruption: 10s @ 0.5s ticks => 20 procs
+    // Shock: 10s @ 1s ticks => 10 procs (cap 16)
+    // Shatter/Assault: 1 proc
     const DEFAULT_PROC_COUNT = { assault: 1, burn: 20, shock: 10, shatter: 1, corruption: 20 };
-    const procCountInput = Math.max(1, Math.floor(i.agent.anomaly.procCount || 1));
-    const procCount = (procCountInput === 1 && (DEFAULT_PROC_COUNT[anomType] || 1) > 1)
-      ? (DEFAULT_PROC_COUNT[anomType] || 1)
-      : procCountInput;
 
-    const anomalyPerTrigger = i.agent.anomaly.baseManual * anomalyMult * i.agent.anomaly.specialMult;
-    const disorderPerTrigger = i.agent.anomaly.baseManual * disorderMult * i.agent.anomaly.specialMult;
+    const anomType = resolveAnomType(i.agent.attribute, i.agent.anomaly.type || "auto");
+    const procCount = DEFAULT_PROC_COUNT[anomType] || 1;
 
-    const anomalyPerRot = anomalyPerTrigger * i.agent.anomaly.triggersPerRot;
-    const disorderPerRot = disorderPerTrigger * i.agent.anomaly.disorderTriggersPerRot;
+    const basePerProc = (ANOM_MV_PER_PROC[anomType] || 0) * Math.max(0, z.atkEffective);
+    const basePerTrigger = basePerProc * procCount;
 
-    const anomalyPerProc = anomalyPerTrigger / procCount;
+    // DMG% for anomalies: Generic + Attribute + Anomaly/Disorder bucket (exclude Skill-Type DMG%).
+    const anomalyDmgPctTotal =
+      (i.agent.dmgBuckets.generic || 0) +
+      (i.agent.dmgBuckets.attribute || 0) +
+      (i.agent.dmgBuckets.anomaly || 0);
+
+    const disorderDmgPctTotal =
+      (i.agent.dmgBuckets.generic || 0) +
+      (i.agent.dmgBuckets.attribute || 0) +
+      (i.agent.dmgBuckets.disorder || 0);
+
+    const anomalyMult = pctToMult(anomalyDmgPctTotal);
+    const disorderMult = pctToMult(disorderDmgPctTotal);
+
+    // AP bonus: AP / 100 (so 100 AP = 1.00x)
+    const apBonus = Math.max(0, i.agent.anomaly.proficiency || 0) / 100;
+
+    // Buff level multiplier approximation (community guide): 1 + 0.0169 * (Level - 1)
+    const buffLvlMult = 1 + 0.0169 * (Math.max(1, i.agent.level) - 1);
+
+    // Anomalies typically cannot crit (we keep crit disabled in UI), so no crit multiplier here.
+
+    const anomalyPerTrigger =
+      basePerTrigger *
+      anomalyMult *
+      z.defMult *
+      z.resMult *
+      z.dmgTakenMult *
+      z.stunMult *
+      apBonus *
+      buffLvlMult;
+
+    // Disorder approximation:
+    // Based on remaining procs; without timing UI we assume full remaining procs.
+    // Shock disorder adds +6 extra procs.
+    const disorderExtraProcs = (anomType === "shock") ? 6 : 0;
+    const disorderBase = basePerProc * (procCount + disorderExtraProcs);
+
+    const disorderPerTrigger =
+      disorderBase *
+      disorderMult *
+      z.defMult *
+      z.resMult *
+      z.dmgTakenMult *
+      z.stunMult *
+      apBonus *
+      buffLvlMult;
+
+    const anomalyPerRot = anomalyPerTrigger * (i.agent.anomaly.triggersPerRot || 0);
+    const disorderPerRot = disorderPerTrigger * (i.agent.anomaly.disorderTriggersPerRot || 0);
+
+    const anomalyPerProc = procCount > 0 ? (anomalyPerTrigger / procCount) : 0;
+
 
     const sheerFromAtk = z.atkEffective * (i.agent.rupture.atkToSheerPct / 100);
     const sheerForceEffective = i.agent.rupture.sheerForce + sheerFromAtk;
@@ -383,7 +452,6 @@
     const pctOrRaw = (v) => (typeof v === "number" && !Number.isNaN(v)) ? v : raw.pct;
 
     switch (key) {
-      // ATK is provided as a single Total ATK input; we apply ATK deltas to atkBase.
       case "atkBase":
         return { kind: "flat", value: raw.atkFlat };
 
@@ -421,6 +489,8 @@
       case "dmgGenericPct": j.agent.dmgBuckets.generic += dp; break;
       case "dmgAttrPct": j.agent.dmgBuckets.attribute += dp; break;
       case "dmgSkillTypePct": j.agent.dmgBuckets.skillType += dp; break;
+      case "dmgOtherPct": j.agent.dmgBuckets.other += dp; break;
+      case "dmgVsStunnedPct": j.agent.dmgBuckets.vsStunned += dp; break;
 
       case "critRatePct":
         j.agent.crit.rate = clamp(j.agent.crit.rate + (dp / 100), 0, 1); break;
@@ -428,7 +498,10 @@
         j.agent.crit.dmg += (dp / 100); break;
 
       case "dmgTakenPct": j.enemy.dmgTakenPct += dp; break;
+      case "dmgTakenStunnedPct": j.enemy.dmgTakenStunnedPct += dp; break;
       case "stunPct": j.enemy.stunPct += dp; break;
+      case "dazeVulnMult":
+        j.enemy.dazeVulnMult += 0.05 * (deltaCfg.raw.pct / 5); break;
 
       case "defReductionPct": j.enemy.defReductionPct += dp; break;
       case "penRatioPct": j.agent.penRatioPct += dp; break;
@@ -448,29 +521,28 @@
 
   function statMeta() {
     return [
-      { key:"atkBase",          label:"Total ATK (In-Combat)" },
+      { key:"atkBase",         label:"Total ATK" },
 
-      { key:"dmgGenericPct",     label:"Generic DMG%" },
-      { key:"dmgAttrPct",        label:"Attribute DMG%" },
-      { key:"dmgSkillTypePct",   label:"Skill DMG% (Basic/Special/Ult)" },
+      { key:"dmgGenericPct",   label:"Generic DMG%" },
+      { key:"dmgAttrPct",      label:"Attribute DMG%" },
+      { key:"dmgSkillTypePct", label:"Skill DMG% (Basic/Special/Ult)" },
 
-      // Always include crit rate now (so table shows value of more crit chance)
-      { key:"critRatePct",       label:"Crit Rate (%)" },
-      { key:"critDmgPct",        label:"Crit DMG (%)" },
+      { key:"critRatePct",     label:"Crit Rate (%)" },
+      { key:"critDmgPct",      label:"Crit DMG (%)" },
 
-      { key:"dmgTakenPct",       label:"Damage Taken +% (Vulnerability)" },
-      { key:"stunPct",           label:"Stunned Multiplier (%)" },
+      { key:"dmgTakenPct",     label:"Damage Taken +%" },
+      { key:"stunPct",         label:"Stunned Multiplier (%)" },
 
-      { key:"defReductionPct",   label:"DEF Reduction (%)" },
-      { key:"penRatioPct",       label:"PEN Ratio (%)" },
-      { key:"penFlat",           label:"PEN" },
-      { key:"defIgnorePct",      label:"DEF Ignore (%)" },
+      { key:"defReductionPct", label:"DEF Reduction (%)" },
+      { key:"penRatioPct",     label:"PEN Ratio (%)" },
+      { key:"penFlat",         label:"PEN" },
+      { key:"defIgnorePct",    label:"DEF Ignore (%)" },
 
-      { key:"sheerForce",        label:"Sheer Force" },
-      { key:"sheerDmgBonusPct",  label:"Sheer DMG Bonus (%)" },
+      { key:"sheerForce",      label:"Sheer Force" },
+      { key:"sheerDmgBonusPct",label:"Sheer DMG Bonus (%)" },
 
-      { key:"anomDmgPct",        label:"Anomaly DMG%" },
-      { key:"disorderDmgPct",    label:"Disorder DMG%" },
+      { key:"anomDmgPct",      label:"Anomaly DMG%" },
+      { key:"disorderDmgPct",  label:"Disorder DMG%" },
     ];
   }
 
@@ -491,7 +563,10 @@
       const pctGain = baseOut !== 0 ? (gain / baseOut) * 100 : 0;
 
       let deltaText = "";
-      if (m.key === "atkBase") {
+      if (m.key === "dazeVulnMult") {
+        const step = 0.05 * (deltaCfg.raw.pct / 5);
+        deltaText = `+${fmt1(step)} mult`;
+      } else if (m.key === "atkBase") {
         deltaText = `+${fmt1(applied.value)} ATK`;
       } else if (applied.kind === "flat") {
         deltaText = `+${fmt1(applied.value)} (flat)`;
@@ -554,25 +629,27 @@
   // ===========================
   // Apply inputs to form
   // ===========================
-  function setVal(id, v) { $(id).value = v; }
+  function setVal(id, v) { const el = $(id); if (el) el.value = v; }
 
   function applyInputs(d) {
     setVal("saveName", d.saveName ?? "My Build");
     setVal("mode", d.mode ?? "standard");
 
     setVal("agentLevel", d.agent?.level ?? 60);
-    // UI uses Total ATK. For older saves, fold atkFlatBonus into the total.
-    const totalAtk = (d.agent?.atkBase ?? d.agent?.atkFlat ?? 2000) + (d.agent?.atkFlatBonus ?? 0);
-    setVal("atkBase", totalAtk);
+    setVal("atkBase", d.agent?.atkBase ?? d.agent?.atkFlat ?? 2000);
+    setVal("atkFlatBonus", d.agent?.atkFlatBonus ?? 0);
     setVal("skillMultPct", d.agent?.skillMultPct ?? 300);
     setVal("critRatePct", ((d.agent?.crit?.rate ?? 0.5) * 100));
     setVal("critDmgPct", ((d.agent?.crit?.dmg ?? 1.0) * 100));
     setVal("attribute", d.agent?.attribute ?? "physical");
+    setVal("specialMult", d.agent?.specialMult ?? 1);
 
     const b = d.agent?.dmgBuckets ?? {};
     setVal("dmgGenericPct", b.generic ?? 0);
     setVal("dmgAttrPct", b.attribute ?? 0);
     setVal("dmgSkillTypePct", b.skillType ?? 0);
+    setVal("dmgOtherPct", b.other ?? 0);
+    setVal("dmgVsStunnedPct", b.vsStunned ?? 0);
     setVal("anomDmgPct", b.anomaly ?? 0);
     setVal("disorderDmgPct", b.disorder ?? 0);
 
@@ -589,12 +666,21 @@
     setVal("penFlat", d.agent?.penFlat ?? 0);
     setVal("defIgnorePct", d.agent?.defIgnorePct ?? 0);
 
+    const defOverride = (d.enemy?.defMultOverride !== undefined && d.enemy?.defMultOverride !== null)
+      ? d.enemy.defMultOverride
+      : ((d.enemy?.useManualDefMult) ? (d.enemy?.defMultManual ?? 1) : null);
+    setVal("defMultOverride", defOverride ?? "");
+    setVal("enemyDmgTakenMult", (d.enemy?.enemyDmgTakenMult ?? "") );
+
     setVal("dmgTakenPct", d.enemy?.dmgTakenPct ?? 0);
     setVal("isStunned", String(!!d.enemy?.stunned));
     setVal("stunPct", d.enemy?.stunPct ?? 100);
+    setVal("dmgTakenStunnedPct", d.enemy?.dmgTakenStunnedPct ?? 0);
+    setVal("dazeVulnMult", d.enemy?.dazeVulnMult ?? 1);
 
     setVal("sheerForce", d.agent?.rupture?.sheerForce ?? 0);
     setVal("sheerDmgBonusPct", d.agent?.rupture?.sheerDmgBonusPct ?? 0);
+    setVal("atkToSheerPct", d.agent?.rupture?.atkToSheerPct ?? 30);
 
     setVal("anomMastery", d.agent?.anomaly?.mastery ?? 0);
     setVal("anomProf", d.agent?.anomaly?.proficiency ?? 0);
@@ -615,7 +701,7 @@
         crit: { rate: 0.5, dmg: 1.0 },
         dmgBuckets: { generic:0, attribute:0, skillType:0, other:0, vsStunned:0, anomaly:0, disorder:0 },
         penRatioPct: 0, penFlat: 0, defIgnorePct: 0,
-        rupture: { sheerForce: 0, sheerDmgBonusPct: 0, atkToSheerPct: 0 },
+        rupture: { sheerForce: 0, sheerDmgBonusPct: 0, atkToSheerPct: 30 },
         anomaly: { mastery: 0, proficiency: 0, baseManual: 0, triggersPerRot: 0, disorderTriggersPerRot: 0, specialMult: 1 }
       },
       enemy: {
