@@ -10,10 +10,9 @@
 <body>
   <h1>Zenless Zone Zero — Damage Inputs + “Diminishing Returns” Analyzer</h1>
 
-  <!-- Identity / save -->
-  <div class="card" style="margin-top:12px;">
+  <div class="card" style="margin-top:15px;">
     <div class="row">
-      <label>Save <input id="saveName" value="My Build"/></label>
+      <label>Save <input id="saveName" value="1"/></label>
       <label>
         Mode
         <select id="mode">
@@ -25,8 +24,8 @@
       </label>
     </div>
     <div class="row" style="margin-top:10px;">
-      <button class="btn primary" id="btnSave">Save (Local)</button>
-      <button class="btn" id="btnLoad">Load (Local)</button>
+      <button class="btn primary" id="btnSave">Save</button>
+      <button class="btn" id="btnLoad">Load</button>
       <button class="btn" id="btnExport">Export JSON</button>
       <button class="btn" id="btnImport">Import JSON</button>
       <input id="importFile" type="file" accept="application/json" class="hidden" />
@@ -36,13 +35,8 @@
 
   <h2>Agent Stats</h2>
   <div class="card grid3">
-    <label>Total ATK (In-Combat) <input id="atkBase" type="number" value="1000" min="0" step="1"/></label>
-    <label>Skill Multiplier (%) <input id="skillMultPct" type="number" value="100" min="0" step="0.1"/></label>
-
     <label>Agent Level <input id="agentLevel" type="number" value="60" min="1" step="1"/></label>
-    <label>Crit Rate (%) <input id="critRatePct" type="number" value="5" min="0" max="100" step="0.1"/></label>
-    <label>Crit DMG (%) <input id="critDmgPct" type="number" value="50" min="0" step="0.1"/></label>
-
+    
     <label>
       Attribute
       <select id="attribute">
@@ -53,30 +47,29 @@
         <option value="ether">Ether</option>
       </select>
     </label>
+    
+    <label>Total ATK <input id="atkBase" type="number" value="1000" min="0" step="1"/></label>
 
+    <label>Crit Rate (%) <input id="critRatePct" type="number" value="5" min="0" max="100" step="0.1"/></label>
+    <label>Crit DMG (%) <input id="critDmgPct" type="number" value="50" min="0" step="0.1"/></label>
 
     <label>Generic DMG% <input id="dmgGenericPct" type="number" value="0" step="0.1"/></label>
     <label>Attribute DMG% <input id="dmgAttrPct" type="number" value="0" step="0.1"/></label>
     <label>Skill DMG% (Basic/Special/Ult) <input id="dmgSkillTypePct" type="number" value="0" step="0.1"/></label>
 
-    <label>Anomaly DMG% <input id="anomDmgPct" type="number" value="0" step="0.1"/></label>
-    <label>Disorder DMG% <input id="disorderDmgPct" type="number" value="0" step="0.1"/></label>
-
     <label>PEN Ratio (%) <input id="penRatioPct" type="number" value="0" step="0.1"/></label>
     <label>PEN <input id="penFlat" type="number" value="0" step="1"/></label>
+
+    <label>Skill Multiplier (%) <input id="skillMultPct" type="number" value="100" min="0" step="0.1"/></label>
   </div>
 
   <h2 id="anomalyHeader">Anomaly</h2>
   <div class="card" id="anomalyCard">
     <div class="grid3">
-      <label>Anomaly Mastery <input id="anomMastery" type="number" value="0" step="1"/></label>
-      <label>Anomaly Proficiency <input id="anomProf" type="number" value="0" step="1"/></label>
-      <label>Base Anomaly DMG <input id="anomBaseManual" type="number" value="0" step="1"/></label>
-
       <label>
         Anomaly Type
         <select id="anomType">
-          <option value="auto" selected>Auto (from Attribute)</option>
+          <option value="auto" selected>Auto</option>
           <option value="assault">Assault (Physical)</option>
           <option value="burn">Burn (Fire)</option>
           <option value="shock">Shock (Electric)</option>
@@ -84,6 +77,13 @@
           <option value="corruption">Corruption (Ether)</option>
         </select>
       </label>
+      
+      <label>Anomaly Mastery <input id="anomMastery" type="number" value="0" step="1"/></label>
+      <label>Anomaly Proficiency <input id="anomProf" type="number" value="0" step="1"/></label>
+      
+      <label>Anomaly DMG% <input id="anomDmgPct" type="number" value="0" step="0.1"/></label>
+      <label>Disorder DMG% <input id="disorderDmgPct" type="number" value="0" step="0.1"/></label>
+      <label>Base Anomaly DMG <input id="anomBaseManual" type="number" value="0" step="1"/></label><!--What does it do?-->
 
       <label>Anomaly Proc Count (per trigger) <input id="anomProcCount" type="number" value="1" min="1" step="1"/></label>
       <label style="flex-direction:row;align-items:center;gap:10px;">
