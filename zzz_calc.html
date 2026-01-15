@@ -48,7 +48,7 @@
         Mode
         <select id="mode">
           <option value="standard">Standard DMG</option>
-          <option value="anomaly">Anomaly / Disorder</option>
+          <option value="anomaly">Anomaly</option>
           <option value="rupture">Rupture (Sheer DMG)</option>
           <option value="hybrid">Hybrid (Standard + Anomaly)</option>
         </select>
@@ -64,10 +64,10 @@
     </div>
   </div>
 
-  <h2>Agent</h2>
+  <h2>Agent Stats</h2>
   <div class="card grid3">
-    <label>Base ATK <input id="atkBase" type="number" value="1000" min="0" step="1"/></label>
-    <label>ATK Bonus (In-Combat) <input id="atkFlatBonus" type="number" value="0" min="0" step="1"/></label>
+    <label>ATK <input id="atkBase" type="number" value="1000" min="0" step="1"/></label>
+    <label><s>ATK Bonus (In-Combat)</s> <input id="atkFlatBonus" type="number" value="0" min="0" step="1"/></label>
     <label>Skill Multiplier (%) <input id="skillMultPct" type="number" value="100" min="0" step="0.1"/>
     </label>
         <label>Agent Level <input id="agentLevel" type="number" value="60" min="1" step="1"/></label>
@@ -88,7 +88,7 @@
     <label><s>Flat “Special Multiplier” (Optional)</s> <input id="specialMult" type="number" value="1" step="0.01"/></label>
     
     <label>Generic DMG% <input id="dmgGenericPct" type="number" value="0" step="0.1"/></label>
-    <label>Element DMG% <input id="dmgAttrPct" type="number" value="0" step="0.1"/></label>
+    <label>Attribute DMG% <input id="dmgAttrPct" type="number" value="0" step="0.1"/></label>
     <label>Skill DMG% (Basic/Special/Ult) <input id="dmgSkillTypePct" type="number" value="0" step="0.1"/></label>
 
     <label>Anomaly DMG% <input id="anomDmgPct" type="number" value="0" step="0.1"/></label>
@@ -100,7 +100,7 @@
     
 </div>
 
-  <h2 id="anomalyHeader">Anomaly / Disorder</h2>
+  <h2 id="anomalyHeader">Anomaly</h2>
   <div class="card" id="anomalyCard">
     <div class="grid3">
       <label>Anomaly Mastery <input id="anomMastery" type="number" value="0" step="1"/></label>
@@ -122,13 +122,13 @@
     </div>
   </div>
 
-  <h2>Monster</h2>
+  <h2>Enemy</h2>
   <div class="card">
 
     <div class="grid3">
       <label>Enemy Level <input id="enemyLevel" type="number" value="70" min="1" step="1"/></label>
       <label>Enemy DEF <input id="enemyDef" type="number" value="953" min="0" step="1"/></label>
-      <label>Enemy Elemental RES (%) <input id="enemyResPct" type="number" value="0" step="0.1"/></label>
+      <label>Enemy Attribute RES (%) <input id="enemyResPct" type="number" value="0" step="0.1"/></label>
 
       <label>DEF Reduction (%) <input id="defReductionPct" type="number" value="0" step="0.1"/></label>
       <label>DEF Ignore (%) <input id="defIgnorePct" type="number" value="0" step="0.1"/></label>
@@ -152,7 +152,7 @@
     </div>
   </div>
 
-  <h2>Outputs + “Marginal Value” (diminishing returns)</h2>
+  <h2>Outputs + Marginal Value (Diminishing Returns)</h2>
   <div class="card">
     <div class="kpi" id="kpi"></div>
 
@@ -887,16 +887,14 @@ const b = d.agent?.dmgBuckets ?? {};
     const z = out.zones;
 
     $("kpi").innerHTML = [
-      { t:"Output (mode, expected)", v: fmt0(out.output_expected) },
-            { t:"Output (mode, non-crit)", v: fmt0(out.output_noncrit) },
-      { t:"Output (mode, crit)", v: fmt0(out.output_crit) },
-      { t:"Standard per-hit (non-crit)", v: fmt0(out.standard_noncrit_per_hit) },
-      { t:"Standard per-hit (crit)", v: fmt0(out.standard_crit_per_hit) },
-      { t:"Standard per-hit (expected)", v: fmt0(out.standard_expected_per_hit) },
-      { t:"Standard Damage (Expected)", v: fmt0(out.standard_expected_total) },
-      { t:"Anomaly total (manual)", v: fmt0(out.anomaly_total) },
-      { t:"Rupture total (manual)", v: fmt0(out.rupture_total) },
+      { t:"Output (AVG)", v: fmt0(out.output_expected) },
+            { t:"Output (Normal)", v: fmt0(out.output_noncrit) },
+      { t:"Output (Crit)", v: fmt0(out.output_crit) },
+      { t:"Anomaly Total", v: fmt0(out.anomaly_total) },
+      { t:"Rupture Total", v: fmt0(out.rupture_total) },
     ].map(x => `<div class="box"><div class="t">${x.t}</div><div class="v">${x.v}</div></div>`).join("");
+
+    
 // Marginals
     const { base, rows } = computeMarginals(i);
     const topN = Number($("topN").value);
