@@ -72,8 +72,8 @@
     </label>
         <label>Agent Level <input id="agentLevel" type="number" value="60" min="1" step="1"/></label>
 
-    <label>CRIT Rate (%) <input id="critRatePct" type="number" value="5" min="0" max="100" step="0.1"/></label>
-    <label>CRIT DMG (%) <input id="critDmgPct" type="number" value="50" min="0" step="0.1"/></label>
+    <label>Crit Rate (%) <input id="critRatePct" type="number" value="5" min="0" max="100" step="0.1"/></label>
+    <label>Crit DMG (%) <input id="critDmgPct" type="number" value="50" min="0" step="0.1"/></label>
 <label>
       Attribute
       <select id="attribute">
@@ -85,23 +85,44 @@
       </select>
     </label>
 
-    <label>Flat “Special Multiplier” (Optional) <input id="specialMult" type="number" value="1" step="0.01"/></label>
+    <label><s>Flat “Special Multiplier” (Optional)</s> <input id="specialMult" type="number" value="1" step="0.01"/></label>
+    
+    <label>Generic DMG% <input id="dmgGenericPct" type="number" value="0" step="0.1"/></label>
+    <label>Element DMG% <input id="dmgAttrPct" type="number" value="0" step="0.1"/></label>
+    <label>Skill DMG% (Basic/Special/Ult) <input id="dmgSkillTypePct" type="number" value="0" step="0.1"/></label>
+
+    <label>Anomaly DMG% <input id="anomDmgPct" type="number" value="0" step="0.1"/></label>
+    <label>Disorder DMG% <input id="disorderDmgPct" type="number" value="0" step="0.1"/></label>
+    <label><s>Other DMG%</s> <input id="dmgOtherPct" type="number" value="0" step="0.1"/></label>
+
+    <label>PEN Ratio (%) <input id="penRatioPct" type="number" value="0" step="0.1"/></label>
+    <label>PEN <input id="penFlat" type="number" value="0" step="1"/></label>
+    
 </div>
 
-  <h2>Agent — DMG%</h2>
-  <div class="card">
+  <h2 id="anomalyHeader">Anomaly / Disorder</h2>
+  <div class="card" id="anomalyCard">
     <div class="grid3">
-      <label>Generic DMG% (“DMG +X%”) <input id="dmgGenericPct" type="number" value="0" step="0.1"/></label>
-      <label>Element DMG% <input id="dmgAttrPct" type="number" value="0" step="0.1"/></label>
-      <label>Skill DMG% (Basic/Special/Ult) <input id="dmgSkillTypePct" type="number" value="0" step="0.1"/></label>
+      <label>Anomaly Mastery <input id="anomMastery" type="number" value="0" step="1"/></label>
+      <label>Anomaly Proficiency <input id="anomProf" type="number" value="0" step="1"/></label>
+      <label>Base Anomaly DMG <input id="anomBaseManual" type="number" value="0" step="1"/></label>
 
-      <label>Anomaly DMG% <input id="anomDmgPct" type="number" value="0" step="0.1"/></label>
-      <label>Disorder DMG% <input id="disorderDmgPct" type="number" value="0" step="0.1"/></label>
-      <label>Other DMG% <input id="dmgOtherPct" type="number" value="0" step="0.1"/></label>
+      <label>Triggers Per Rotation <input id="anomTriggersPerRot" type="number" value="0" step="0.1"/></label>
+      <label>Disorder Triggers Per Rotation <input id="disorderTriggersPerRot" type="number" value="0" step="0.1"/></label>
+      <label>Anomaly Special Multiplier <input id="anomSpecialMult" type="number" value="1" step="0.01"/></label>
     </div>
   </div>
 
-  <h2>Defense</h2>
+  <h2 id="ruptureHeader">Rupture — Sheer Force / Sheer DMG Bonus</h2>
+  <div class="card" id="ruptureCard">
+    <div class="grid3">
+      <label>Sheer Force <input id="sheerForce" type="number" value="0" step="1"/></label>
+      <label>Sheer DMG Bonus (%) <input id="sheerDmgBonusPct" type="number" value="0" step="0.1"/></label>
+      <label><s>ATK →  Sheer Conversion (%)</s> <input id="atkToSheerPct" type="number" value="30" step="0.1"/></label>
+    </div>
+  </div>
+
+  <h2>Monster</h2>
   <div class="card">
 
     <div class="grid3">
@@ -110,62 +131,24 @@
       <label>Enemy Elemental RES (%) <input id="enemyResPct" type="number" value="0" step="0.1"/></label>
 
       <label>DEF Reduction (%) <input id="defReductionPct" type="number" value="0" step="0.1"/></label>
-      <label>PEN Ratio (%) <input id="penRatioPct" type="number" value="0" step="0.1"/></label>
-      <label>PEN <input id="penFlat" type="number" value="0" step="1"/></label>
-
       <label>DEF Ignore (%) <input id="defIgnorePct" type="number" value="0" step="0.1"/></label>
       <label>
-        DEF Multiplier Override (Optional)
-        <input id="defMultOverride" type="number" value="" step="0.01" placeholder="Leave blank to auto-calc" />
+        <s>DEF Multiplier Override (Optional)</s>
+        <input id="defMultOverride" type="number" value="" step="0.01" />
       </label>
       <label>
-        Enemy Damage Taken Multiplier (Optional)
-        <input id="enemyDmgTakenMult" type="number" value="" step="0.01" placeholder="e.g., 0.75 for -25% DMG" />
+        <s>Enemy Damage Taken Multiplier (Optional)</s>
+        <input id="enemyDmgTakenMult" type="number" value="" step="0.01" />
       </label>
-    </div>
-  </div>
-
-  <h2>Target-side modifiers — Damage Taken / Stun</h2>
-  <div class="card grid3">
-    <label>Damage Taken +% (vulnerability) <input id="dmgTakenPct" type="number" value="0" step="0.1"/></label>
-    <label>Target stunned? <select id="isStunned"><option value="false">No</option><option value="true">Yes</option></select></label>
-<label>
-  Stun damage taken (%) (e.g., 125 = 1.25×)
-  <input id="stunPct" type="number" value="100" step="1" />
-</label>
-    <label>Damage Taken +% while stunned <input id="dmgTakenStunnedPct" type="number" value="0" step="0.1"/></label>
-    <label>Attacker DMG% vs stunned (additive bucket) <input id="dmgVsStunnedPct" type="number" value="0" step="0.1"/></label>
-    <label>Enemy special “Daze vulnerability mult” (manual) <input id="dazeVulnMult" type="number" value="1" step="0.01"/></label>
-  </div>
-
-  <h2 id="ruptureHeader">Rupture — Sheer Force / Sheer DMG Bonus</h2>
-  <div class="card" id="ruptureCard">
-    <p class="muted" style="margin-top:0;">
-      Sheer Force is a stat used by Rupture Agents to calculate Sheer DMG, and Rupture Agents convert part of ATK to Sheer Force. :contentReference[oaicite:5]{index=5}
-      “Sheer DMG Bonus” exists as a stat. :contentReference[oaicite:6]{index=6}
-      (Exact formula varies by unit; we capture inputs cleanly first.)
-    </p>
-    <div class="grid3">
-      <label>Sheer Force (manual) <input id="sheerForce" type="number" value="0" step="1"/></label>
-      <label>Sheer DMG Bonus (%) <input id="sheerDmgBonusPct" type="number" value="0" step="0.1"/></label>
-      <label>ATK→Sheer conversion (%) (if applicable) <input id="atkToSheerPct" type="number" value="30" step="0.1"/></label>
-    </div>
-  </div>
-
-  <h2 id="anomalyHeader">Anomaly / Disorder</h2>
-  <div class="card" id="anomalyCard">
-    <p class="muted" style="margin-top:0;">
-      ZZZ has Standard DMG and Attribute Anomaly DMG as separate types. :contentReference[oaicite:7]{index=7}
-      This section is for modeling anomaly trigger damage and disorder later.
-    </p>
-    <div class="grid3">
-      <label>Anomaly Mastery <input id="anomMastery" type="number" value="0" step="1"/></label>
-      <label>Anomaly Proficiency <input id="anomProf" type="number" value="0" step="1"/></label>
-      <label>Base anomaly damage (manual) <input id="anomBaseManual" type="number" value="0" step="1"/></label>
-
-      <label>Triggers per rotation (manual) <input id="anomTriggersPerRot" type="number" value="0" step="0.1"/></label>
-      <label>Disorder triggers per rotation (manual) <input id="disorderTriggersPerRot" type="number" value="0" step="0.1"/></label>
-      <label>Anomaly special multiplier (manual) <input id="anomSpecialMult" type="number" value="1" step="0.01"/></label>
+      <label>Damage Taken +% (Vulnerability) <input id="dmgTakenPct" type="number" value="0" step="0.1"/></label>
+      <label>Stunned? <select id="isStunned"><option value="false">No</option><option value="true">Yes</option></select></label>
+      <label>
+        Stunned Multiplier (%)
+        <input id="stunPct" type="number" value="100" step="1" />
+      </label>
+      <label>Stunned Damage Taken +% <input id="dmgTakenStunnedPct" type="number" value="0" step="0.1"/></label>
+      <label>Stunned DMG% <input id="dmgVsStunnedPct" type="number" value="0" step="0.1"/></label>
+      <label><s>  Daze Vulnerability Multiplier</s> <input id="dazeVulnMult" type="number" value="1" step="0.01"/></label>
     </div>
   </div>
 
