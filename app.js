@@ -70,16 +70,23 @@
         anomaly: {
           type: "auto",
           prof: 0,
-          mastery: 0,
           dmgPct: 0,
           disorderPct: 0,
-          triggersPerRot: 0,
-          disorderTriggersPerRot: 0,
+          // Optional overrides (leave blank in UI to use defaults per anomaly type)
+          tickCountOverride: null,
+          tickIntervalSecOverride: null,
+
+          // Special-case toggle: anomalies generally cannot crit in ZZZ,
+          // but some character-specific effects may effectively make anomaly instances crit-like.
+          allowCrit: false,
+
+          // Disorder modeling inputs
+          disorderPrevType: "auto",
+          disorderTimePassedSec: 0,
 
           // legacy fields kept in saves (not used in calculations)
           baseManual: 0,
           procCount: 1,
-          allowCrit: false,
           specialMult: 1,
         },
 
@@ -181,11 +188,13 @@
     // Anomaly
     i.agent.anomaly.type = $("anomType").value;
     i.agent.anomaly.prof = num("anomProf", 0);
-    i.agent.anomaly.mastery = num("anomMastery", 0);
     i.agent.anomaly.dmgPct = num("anomDmgPct", 0);
     i.agent.anomaly.disorderPct = num("disorderDmgPct", 0);
-    i.agent.anomaly.triggersPerRot = num("anomTriggersPerRot", 0);
-    i.agent.anomaly.disorderTriggersPerRot = num("disorderTriggersPerRot", 0);
+    i.agent.anomaly.allowCrit = !!$("anomAllowCrit")?.checked;
+    i.agent.anomaly.tickCountOverride = optNum("anomTickCount");
+    i.agent.anomaly.tickIntervalSecOverride = optNum("anomTickIntervalSec");
+    i.agent.anomaly.disorderPrevType = $("disorderPrevType")?.value ?? "auto";
+    i.agent.anomaly.disorderTimePassedSec = num("disorderTimePassedSec", 0);
 
     // Rupture
     i.agent.rupture.sheerForce = num("sheerForce", 0);
@@ -306,54 +315,156 @@
     return { nonCrit, crit, expected };
   }
 
-  // NOTE: this is still your existing anomaly model (not crit-enabled).
-  // If you later want “anomaly crit special cases”, we can extend it.
-  const DEFAULT_PROC_COUNT = {
-    assault: 1,
-    burn: 1,
-    shock: 1,
-    shatter: 1,
-    corruption: 1,
-    auto: 1,
+  // ===========================
+  // Anomaly model (in-game-like defaults)
+  // ===========================
+  // Based on commonly referenced community formula summaries:
+  // - Anomalies generally cannot crit.
+  // - Burn/Shock/Corruption are multi-instance effects over ~10s.
+  // - Shatter/Assault are single-instance.
+  // - Disorder depends on previous anomaly + time passed since application.
+  // This calculator still simplifies some edge cases (ICDs, proc caps in real combat, etc.).
+
+  const ANOM_META = {
+    assault:   { label: "Assault",   kind: "single", durationSec: 0,  instances: 1,  intervalSec: 0,   perInstanceMultPct: 713.0, canCrit: false },
+    shatter:   { label: "Shatter",   kind: "single", durationSec: 0,  instances: 1,  intervalSec: 0,   perInstanceMultPct: 500.0, canCrit: false },
+    burn:      { label: "Burn",      kind: "dot",    durationSec: 10, instances: 20, intervalSec: 0.5, perInstanceMultPct: 50.0,  canCrit: false },
+    shock:     { label: "Shock",     kind: "dot",    durationSec: 10, instances: 10, intervalSec: 1.0, perInstanceMultPct: 125.0, canCrit: false },
+    corruption:{ label: "Corruption",kind: "dot",    durationSec: 10, instances: 20, intervalSec: 0.5, perInstanceMultPct: 62.5,  canCrit: false },
+  };
+
+  const ANOM_TYPE_FROM_ATTR = {
+    physical: "assault",
+    fire: "burn",
+    electric: "shock",
+    ice: "shatter",
+    ether: "corruption",
   };
 
   function inferAnomType(i) {
     if (i.agent.anomaly.type !== "auto") return i.agent.anomaly.type;
-    const attr = i.agent.attribute;
-    if (attr === "physical") return "assault";
-    if (attr === "fire") return "burn";
-    if (attr === "electric") return "shock";
-    if (attr === "ice") return "shatter";
-    if (attr === "ether") return "corruption";
-    return "assault";
+    return ANOM_TYPE_FROM_ATTR[i.agent.attribute] ?? "assault";
+  }
+
+  function inferDisorderPrevType(i, currentAnomType) {
+    const v = i.agent.anomaly.disorderPrevType;
+    return (v && v !== "auto") ? v : currentAnomType;
+  }
+
+  function anomalyLevelMult(level) {
+    const lv = clamp(Math.floor(level ?? 1), 1, 60);
+    // 1 + (level - 1) / 59, truncated to 4 decimals.
+    const raw = 1 + (lv - 1) / 59;
+    return Math.floor(raw * 10000) / 10000;
+  }
+
+  function anomalyProfMult(prof) {
+    // Community guides commonly represent proficiency scaling as prof * 0.01
+    return Math.max(0, (Number(prof) || 0) * 0.01);
   }
 
   function computeAnomalyOutput(i) {
     const anomType = inferAnomType(i);
-    const procCount = DEFAULT_PROC_COUNT[anomType] ?? 1;
+    const meta = ANOM_META[anomType] ?? ANOM_META.assault;
 
-    // Simplified model: base scales with ATK and mastery/prof
+    // Overrides (blank => defaults)
+    const ticks = Math.max(1, Math.floor(i.agent.anomaly.tickCountOverride ?? meta.instances));
+    const intervalSec = Math.max(0, Number(i.agent.anomaly.tickIntervalSecOverride ?? meta.intervalSec));
+    const durationSec = (meta.kind === "dot") ? (ticks * intervalSec) : 0;
+
+    // Core multipliers (same buckets as standard damage for now)
     const atk = i.agent.atkBase;
-    const prof = i.agent.anomaly.prof;
-    const mastery = i.agent.anomaly.mastery;
+    const profMult = anomalyProfMult(i.agent.anomaly.prof);
+    const lvMult = anomalyLevelMult(i.agent.level);
 
-    // This is placeholder-ish but matches your current approach.
-    const baseAnom = atk * (1 + mastery / 1000) * (1 + prof / 1000);
-    const anomalyMult = pctToMult(i.agent.anomaly.dmgPct);
-    const disorderMult = pctToMult(i.agent.anomaly.disorderPct);
+    const dmgPctTotal =
+      i.agent.dmgBuckets.generic +
+      i.agent.dmgBuckets.attribute +
+      i.agent.dmgBuckets.skillType +
+      i.agent.dmgBuckets.other +
+      (i.enemy.isStunned ? i.agent.dmgBuckets.vsStunned : 0);
 
-    const anomalyPerTrigger = baseAnom * anomalyMult * procCount;
-    const disorderPerTrigger = baseAnom * disorderMult * procCount;
+    // Per-type damage bonuses for anomaly/disorder
+    const anomalyBonusMult = pctToMult(dmgPctTotal + i.agent.anomaly.dmgPct);
+    const disorderBonusMult = pctToMult(dmgPctTotal + i.agent.anomaly.disorderPct);
 
-    const anomalyPerRot = anomalyPerTrigger * i.agent.anomaly.triggersPerRot;
-    const disorderPerRot = disorderPerTrigger * i.agent.anomaly.disorderTriggersPerRot;
+    const defMult = computeDefMult(i);
+    const resMult = computeResMult(i);
+    const vuln = pctToMult(i.enemy.dmgTakenPct);
+    const stunMult = i.enemy.isStunned ? (i.enemy.stunPct / 100) : 1;
+
+    // Base multiplier for each anomaly instance
+    const perInstBase = atk * (meta.perInstanceMultPct / 100);
+
+    // Base damage (non-crit)
+    const perInstNonCrit = perInstBase * profMult * lvMult * anomalyBonusMult * defMult * resMult * vuln * stunMult;
+    const perInstCrit = perInstNonCrit * (1 + i.agent.crit.dmg);
+
+    const canCritByDefault = !!meta.canCrit;
+    const allowCrit = !!i.agent.anomaly.allowCrit;
+    // By default anomalies cannot crit. If the user enables the special-case toggle,
+    // we allow crit math to apply (useful for character-specific exceptions).
+    const critEnabled = allowCrit;
+    const cr = clamp(i.agent.crit.rate, 0, 1);
+    const perInstAvg = critEnabled ? (perInstNonCrit * (1 - cr) + perInstCrit * cr) : perInstNonCrit;
+
+    const anomalyPerTick = {
+      nonCrit: perInstNonCrit,
+      crit: perInstCrit,
+      avg: perInstAvg,
+    };
+
+    const anomalyPerProc = {
+      nonCrit: perInstNonCrit * ticks,
+      crit: perInstCrit * ticks,
+      avg: perInstAvg * ticks,
+    };
+
+    // Disorder (single instance) — depends on previous anomaly + time passed
+    const prevType = inferDisorderPrevType(i, anomType);
+    const t = clamp(Number(i.agent.anomaly.disorderTimePassedSec || 0), 0, 10);
+
+    // These are simplified numeric equivalents of common "previous anomaly" disorder multipliers.
+    // Using stepwise floors as often described (10s window).
+    let disorderMultPct;
+    if (prevType === "burn") {
+      disorderMultPct = 450 + Math.floor((10 - t) * 2) * 50;
+    } else if (prevType === "shock") {
+      disorderMultPct = 450 + Math.floor(10 - t) * 125;
+    } else if (prevType === "corruption") {
+      disorderMultPct = 450 + Math.floor((10 - t) * 2) * 62.5;
+    } else if (prevType === "shatter") {
+      // "Frozen" in some summaries
+      disorderMultPct = 450 + Math.floor(10 - t) * 7.5;
+    } else if (prevType === "assault") {
+      // "Flinch" in some summaries
+      disorderMultPct = 450 + Math.floor(10 - t) * 7.5;
+    } else {
+      disorderMultPct = 450;
+    }
+
+    const disorderNonCrit = atk * (disorderMultPct / 100) * profMult * lvMult * disorderBonusMult * defMult * resMult * vuln * stunMult;
+    const disorderCrit = disorderNonCrit * (1 + i.agent.crit.dmg);
+    const disorderAvg = critEnabled ? (disorderNonCrit * (1 - cr) + disorderCrit * cr) : disorderNonCrit;
 
     return {
-      anomalyPerTrigger,
-      disorderPerTrigger,
-      anomalyPerRot,
-      disorderPerRot,
-      combinedPerRot: anomalyPerRot + disorderPerRot,
+      anomType,
+      kind: meta.kind,
+      canCritByDefault,
+      critEnabled,
+
+      tickCount: ticks,
+      tickIntervalSec: intervalSec,
+      durationSec,
+
+      anomalyPerTick,
+      anomalyPerProc,
+
+      disorderPrevType: prevType,
+      disorderTimePassedSec: t,
+      disorder: { nonCrit: disorderNonCrit, crit: disorderCrit, avg: disorderAvg },
+
+      combinedAvg: anomalyPerProc.avg + disorderAvg,
     };
   }
 
@@ -410,12 +521,9 @@
     if (i.mode === "anomaly") {
       return {
         mode: i.mode,
-        anomaly_per_trigger: anom.anomalyPerTrigger,
-        disorder_per_trigger: anom.disorderPerTrigger,
-        anomaly_per_rotation: anom.anomalyPerRot,
-        disorder_per_rotation: anom.disorderPerRot,
-        output_expected: anom.combinedPerRot,
-        output: anom.combinedPerRot,
+        anom,
+        output_expected: anom.combinedAvg,
+        output: anom.combinedAvg,
       };
     }
 
@@ -435,8 +543,9 @@
       mode: i.mode,
       output_noncrit: std.nonCrit,
       output_crit: std.crit,
-      output_expected: std.expected + anom.combinedPerRot,
-      output: std.expected + anom.combinedPerRot,
+      // Hybrid is still a simplistic "add standard hit + anomaly proc" view.
+      output_expected: std.expected + anom.combinedAvg,
+      output: std.expected + anom.combinedAvg,
     };
   }
 
@@ -582,11 +691,18 @@
 
     $("anomType").value = data.agent?.anomaly?.type ?? "auto";
     $("anomProf").value = data.agent?.anomaly?.prof ?? 0;
-    $("anomMastery").value = data.agent?.anomaly?.mastery ?? 0;
     $("anomDmgPct").value = data.agent?.anomaly?.dmgPct ?? 0;
     $("disorderDmgPct").value = data.agent?.anomaly?.disorderPct ?? 0;
-    $("anomTriggersPerRot").value = data.agent?.anomaly?.triggersPerRot ?? 0;
-    $("disorderTriggersPerRot").value = data.agent?.anomaly?.disorderTriggersPerRot ?? 0;
+    const allowCritEl = $("anomAllowCrit");
+    if (allowCritEl) allowCritEl.checked = !!(data.agent?.anomaly?.allowCrit ?? false);
+    const tickCountEl = $("anomTickCount");
+    if (tickCountEl) tickCountEl.value = data.agent?.anomaly?.tickCountOverride ?? "";
+    const tickIntEl = $("anomTickIntervalSec");
+    if (tickIntEl) tickIntEl.value = data.agent?.anomaly?.tickIntervalSecOverride ?? "";
+    const prevEl = $("disorderPrevType");
+    if (prevEl) prevEl.value = data.agent?.anomaly?.disorderPrevType ?? "auto";
+    const tEl = $("disorderTimePassedSec");
+    if (tEl) tEl.value = data.agent?.anomaly?.disorderTimePassedSec ?? 0;
 
     $("sheerForce").value = data.agent?.rupture?.sheerForce ?? 0;
     $("sheerDmgBonusPct").value = data.agent?.rupture?.sheerDmgBonusPct ?? 0;
@@ -679,6 +795,7 @@
     applyModeVisibility(i.mode);
 
     const out = computePreviewOutput(i);
+    const anomOut = (i.mode === "anomaly" || i.mode === "hybrid") ? computeAnomalyOutput(i) : null;
 
     const mode = i.mode;
     const labelPrefix =
@@ -697,8 +814,30 @@
     }
 
     if (mode === "anomaly" || mode === "hybrid") {
-      kpiItems.push({ t:`Anomaly/Rot`,   v: fmt0(out.anomaly_per_rotation ?? 0) });
-      kpiItems.push({ t:`Disorder/Rot`,  v: fmt0(out.disorder_per_rotation ?? 0) });
+      // Update anomaly info pills (if present in DOM)
+      const kindPill = $("anomKindPill");
+      const canCritPill = $("anomCanCritPill");
+      if (kindPill && anomOut) kindPill.textContent = (anomOut.kind === "dot") ? "DoT" : "Single";
+      if (canCritPill && anomOut) {
+        if (anomOut.critEnabled) canCritPill.textContent = "Crit: ON";
+        else canCritPill.textContent = anomOut.canCritByDefault ? "Crit: YES" : "Crit: NO";
+      }
+
+      if (anomOut) {
+        kpiItems.push({ t: `Anomaly Type`, v: anomOut.anomType });
+
+        if (anomOut.kind === "dot") {
+          kpiItems.push({ t: `Tick DMG (AVG)`, v: fmt0(anomOut.anomalyPerTick.avg) });
+          kpiItems.push({ t: `Ticks / Proc`, v: fmt0(anomOut.tickCount) });
+          kpiItems.push({ t: `Tick Interval (s)`, v: fmt1(anomOut.tickIntervalSec) });
+          kpiItems.push({ t: `DoT Duration (s)`, v: fmt1(anomOut.durationSec) });
+          kpiItems.push({ t: `Anomaly Total / Proc`, v: fmt0(anomOut.anomalyPerProc.avg) });
+        } else {
+          kpiItems.push({ t: `Anomaly Hit (AVG)`, v: fmt0(anomOut.anomalyPerProc.avg) });
+        }
+
+        kpiItems.push({ t: `Disorder Hit (AVG)`, v: fmt0(anomOut.disorder.avg) });
+      }
     }
 
     $("kpi").innerHTML = kpiItems

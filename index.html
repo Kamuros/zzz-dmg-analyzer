@@ -91,14 +91,46 @@
       </div>
 
       <div class="form-row cols-3">
-        <label>Anomaly Mastery <input id="anomMastery" type="number" value="0" step="1"/></label>
         <label>Anomaly DMG (%) <input id="anomDmgPct" type="number" value="0" step="0.1"/></label>
         <label>Disorder DMG (%) <input id="disorderDmgPct" type="number" value="0" step="0.1"/></label>
+        <label style="display:flex; align-items:center; gap:10px;">
+          <span>Allow anomaly crit (special cases)</span>
+          <input id="anomAllowCrit" type="checkbox" />
+        </label>
       </div>
 
-      <div class="form-row cols-2">
-        <label>Triggers Per Rotation <input id="anomTriggersPerRot" type="number" value="0" step="0.1"/></label>
-        <label>Disorder Triggers Per Rotation <input id="disorderTriggersPerRot" type="number" value="0" step="0.1"/></label>
+      <div class="form-row cols-3">
+        <label>Tick Count (override)
+          <input id="anomTickCount" type="number" value="" min="1" step="1" placeholder="Auto"/>
+        </label>
+        <label>Tick Interval (sec, override)
+          <input id="anomTickIntervalSec" type="number" value="" min="0" step="0.05" placeholder="Auto"/>
+        </label>
+        <label>
+          Anomaly Info
+          <div class="muted" style="margin-top:6px;">
+            <span class="pill" id="anomKindPill">—</span>
+            <span class="pill" id="anomCanCritPill">—</span>
+          </div>
+        </label>
+      </div>
+
+      <div class="form-row cols-3">
+        <label>
+          Disorder: Previous Anomaly
+          <select id="disorderPrevType">
+            <option value="auto" selected>Auto (use current Anomaly Type)</option>
+            <option value="burn">Burn</option>
+            <option value="shock">Shock</option>
+            <option value="corruption">Corruption</option>
+            <option value="shatter">Frozen (Ice)</option>
+            <option value="assault">Flinch (Physical)</option>
+          </select>
+        </label>
+        <label>Disorder: Time Passed (sec)
+          <input id="disorderTimePassedSec" type="number" value="0" min="0" step="0.1" />
+        </label>
+        <label class="muted" style="align-self:end;">Disorder uses the previous anomaly + time passed.</label>
       </div>
     </div>
   </div>
