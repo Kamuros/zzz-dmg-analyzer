@@ -2,6 +2,19 @@
   // Helpers
   // ===========================
   const $ = (id) => document.getElementById(id);
+
+  // Per-stat custom deltas for the Marginal table's editable “Δ Stat” column
+  // key -> { kind: "pct" | "flat", value: number }
+  const CUSTOM_APPLIED = Object.create(null);
+
+  // Default deltas (used when the user hasn't overridden a row)
+  const DEFAULT_DELTA = {
+    pct: 1,      // +1% for % stats
+    atk: 10,     // +10 ATK
+    penFlat: 10, // +10 PEN
+    sheerForce: 10,
+  };
+
   const num = (id, fallback = 0) => {
     const el = $(id);
     const v = el?.value;
@@ -20,468 +33,403 @@
   };
 
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  const fmt0 = (x) => Number.isFinite(x) ? x.toFixed(0) : "—";
+  const fmt1 = (x) => Number.isFinite(x) ? x.toFixed(1) : "—";
+  const clone = (x) => JSON.parse(JSON.stringify(x));
+
   const pctToMult = (pct) => 1 + (pct / 100);
 
-  // Round half-up (0.5 always rounds up; negative values round away from zero)
-  function roundHalfUp(value, decimals = 2) {
-    const f = 10 ** decimals;
-    if (!Number.isFinite(value)) return value;
-    const x = value * f;
-    const r = value >= 0 ? Math.floor(x + 0.5) : Math.ceil(x - 0.5);
-    return r / f;
-  }
-
-  function fmt(value, decimals = 2) {
-    const r = roundHalfUp(value, decimals);
-    return Number.isFinite(r) ? r.toFixed(decimals) : String(value);
-  }
-
-  // UI formatting helpers (half-up). Calculations remain full precision.
-  const fmt0 = (v) => fmt(v, 0);
-  const fmt1 = (v) => fmt(v, 1);
-
-  // ZZZ-like DEF multiplier (Level Factor table + effective DEF with PEN ratio and flat PEN)
-  // DEF Mult = LF / (effectiveDEF + LF)
-  function levelFactor(level) {
-    const t = [null,
-      50,54,58,62,66,71,76,82,88,94,
-      100,107,114,121,129,137,145,153,162,172,
-      181,191,201,211,222,233,245,256,268,281,
-      293,306,319,333,347,361,375,390,405,421,
-      436,452,469,485,502,519,537,555,573,592,
-      610,629,649,669,689,709,730,751,772
-    ];
-    if (level >= 60) return 794;
-    return t[level] ?? 794;
-  }
-
-  function computeDefMult(i) {
-    const lf = levelFactor(i.agent.level);
-
-    let def = Math.max(0, i.enemy.def);
-
-    // Apply DEF reduction as scaling on DEF
-    def *= (1 - (i.enemy.defReductionPct / 100));
-
-    // Apply PEN ratio and flat PEN
-    def = def * (1 - (i.agent.penRatioPct / 100)) - i.agent.penFlat;
-
-    // Apply DEF Ignore as an additional "ignore remaining DEF" knob
-    def *= (1 - (i.agent.defIgnorePct / 100));
-
-    def = Math.max(0, def);
-    return lf / (def + lf);
-  }
-
-  const STORAGE_KEY = "zzz_calc.saves.v3";
-
-  function getAllSaves() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const obj = raw ? JSON.parse(raw) : {};
-      return (obj && typeof obj === "object") ? obj : {};
-    } catch {
-      return {};
-    }
-  }
-
-  function setAllSaves(obj) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
-  }
-
-
   // ===========================
-  // Read inputs (schema v3)
+  // Data model (inputs)
   // ===========================
-  function readInputs() {
-    const mode = $("mode").value;
-    const stunned = $("isStunned").value === "true";
-
-    const dmgBuckets = {
-      generic: num("dmgGenericPct"),
-      attribute: num("dmgAttrPct"),
-      skillType: num("dmgSkillTypePct"),
-      other: num("dmgOtherPct"),
-      vsStunned: stunned ? num("dmgVsStunnedPct") : 0,
-      anomaly: (mode === "anomaly" || mode === "hybrid") ? num("anomDmgPct") : 0,
-      disorder: (mode === "anomaly" || mode === "hybrid") ? num("disorderDmgPct") : 0,
-    };
-
+  function defaultInputs() {
     return {
-      schemaVersion: 3,
-      saveName: $("saveName").value.trim() || "My Build",
-      mode,
+      saveName: "1",
+      mode: "standard",
 
       agent: {
-        level: Math.max(1, Math.floor(num("agentLevel", 60))),
-        atkBase: num("atkBase", 2000),
-        atkFlatBonus: num("atkFlatBonus", 0),
-        attribute: $("attribute").value,
-        skillMultPct: num("skillMultPct", 300),
-        specialMult: num("specialMult", 1),
+        level: 60,
+        attribute: "physical",
+        atkBase: 1000,
 
-        crit: {
-          rate: clamp(num("critRatePct", 50) / 100, 0, 1),
-          dmg: Math.max(0, num("critDmgPct", 100) / 100)
+        crit: { rate: 0.05, dmg: 0.50 },
+
+        dmgBuckets: {
+          generic: 0,
+          attribute: 0,
+          skillType: 0,
+          other: 0,
+          vsStunned: 0,
         },
 
-        dmgBuckets,
+        penRatioPct: 0,
+        penFlat: 0,
 
-        penRatioPct: Math.max(0, num("penRatioPct")),
-        penFlat: Math.max(0, num("penFlat")),
-        defIgnorePct: Math.max(0, num("defIgnorePct")),
-
-        rupture: {
-          sheerForce: Math.max(0, num("sheerForce")),
-          sheerDmgBonusPct: num("sheerDmgBonusPct"),
-          atkToSheerPct: num("atkToSheerPct")
-        },
+        skillMultPct: 100,
 
         anomaly: {
-          // AP (Anomaly Proficiency) directly scales anomaly damage: AP bonus = AP / 100.
-          proficiency: Math.max(0, num("anomProf", 0)),
-
-          type: $("anomType") ? $("anomType").value : "auto",
-
-          // Frequency inputs (needed for per-rotation totals)
-          triggersPerRot: Math.max(0, num("anomTriggersPerRot", 0)),
-          disorderTriggersPerRot: Math.max(0, num("disorderTriggersPerRot", 0)),
-
-          // Advanced/legacy fields (not shown in UI). Kept for backward-compat.
+          type: "auto",
+          prof: 0,
           mastery: 0,
+          dmgPct: 0,
+          disorderPct: 0,
+          triggersPerRot: 0,
+          disorderTriggersPerRot: 0,
+
+          // legacy fields kept in saves (not used in calculations)
           baseManual: 0,
           procCount: 1,
-          durationSec: 10,
           allowCrit: false,
-          specialMult: 1
-        }
+          specialMult: 1,
+        },
+
+        rupture: {
+          sheerForce: 0,
+          sheerDmgBonusPct: 0,
+        },
       },
 
       enemy: {
-        level: Math.max(1, Math.floor(num("enemyLevel", 60))),
-        def: Math.max(0, Math.floor(num("enemyDef", 0))),
-        resAllPct: num("enemyResAllPct", 0),
-        resByAttr: {
-          physical: optNum("enemyResPhysicalPct") ?? 0,
-          fire: optNum("enemyResFirePct") ?? 0,
-          ice: optNum("enemyResIcePct") ?? 0,
-          electric: optNum("enemyResElectricPct") ?? 0,
-          ether: optNum("enemyResEtherPct") ?? 0,
-        },
+        level: 70,
+        def: 953,
 
-        defReductionPct: num("defReductionPct", 0),
-        defMultOverride: optNum("defMultOverride"),
-        enemyDmgTakenMult: optNum("enemyDmgTakenMult"),
+        resAllPct: 0,
+        resPhysicalPct: null,
+        resFirePct: null,
+        resIcePct: null,
+        resElectricPct: null,
+        resEtherPct: null,
 
-        dmgTakenPct: num("dmgTakenPct", 0),
-        stunned,
-        stunPct: num("stunPct", 100),
-        dmgTakenStunnedPct: stunned ? num("dmgTakenStunnedPct", 0) : 0,
-        dazeVulnMult: num("dazeVulnMult", 1)
+        defReductionPct: 0,
+        defIgnorePct: 0,
+
+        dmgTakenPct: 0,
+        dmgTakenStunnedPct: 0,
+
+        isStunned: false,
+        stunPct: 100,
+
+        // extra knob used in statMeta (kept for completeness)
+        dazeVulnMult: 1.0,
       },
 
-      meta: { updatedAt: new Date().toISOString() }
+      marginal: {
+        deltaPreset: "1",
+        basis: "raw",
+        topN: "all",
+      },
     };
   }
 
   // ===========================
-  // Preview output model
+  // Stat meta for marginal table
   // ===========================
-  function computeZones(i) {
-    const atkTotal = (i.agent.atkBase + i.agent.atkFlatBonus);
-    const atkEffective = atkTotal;
+  function statMeta() {
+    return [
+      { key: "atkBase", label: "Total ATK" },
 
-    const base = atkEffective * (i.agent.skillMultPct / 100);
+      { key: "dmgGenericPct", label: "Generic DMG" },
+      { key: "dmgAttrPct", label: "Attribute DMG" },
+      { key: "dmgSkillTypePct", label: "Skill DMG (Basic/Special/Ult)" },
+
+      { key: "critRatePct", label: "Crit Rate" },
+      { key: "critDmgPct", label: "Crit DMG" },
+
+      { key: "penRatioPct", label: "PEN Ratio" },
+      { key: "penFlat", label: "PEN" },
+
+      { key: "defReductionPct", label: "DEF Reduction" },
+      { key: "defIgnorePct", label: "DEF Ignore" },
+
+      { key: "dmgTakenPct", label: "DMG Taken" },
+
+      { key: "stunPct", label: "Stunned Multiplier" },
+
+      { key: "anomDmgPct", label: "Anomaly DMG" },
+      { key: "disorderDmgPct", label: "Disorder DMG" },
+
+      { key: "sheerForce", label: "Sheer Force" },
+      { key: "sheerDmgBonusPct", label: "Sheer DMG Bonus" },
+    ];
+  }
+
+  // ===========================
+  // Read/Apply UI
+  // ===========================
+  function readInputs() {
+    const i = defaultInputs();
+
+    i.saveName = ($("saveName").value || "1");
+    i.mode = $("mode").value;
+
+    i.agent.level = num("agentLevel", 60);
+    i.agent.attribute = $("attribute").value;
+    i.agent.atkBase = num("atkBase", 0);
+
+    i.agent.crit.rate = clamp(num("critRatePct", 0) / 100, 0, 1);
+    i.agent.crit.dmg = num("critDmgPct", 0) / 100;
+
+    i.agent.dmgBuckets.generic = num("dmgGenericPct", 0);
+    i.agent.dmgBuckets.attribute = num("dmgAttrPct", 0);
+    i.agent.dmgBuckets.skillType = num("dmgSkillTypePct", 0);
+
+    i.agent.penRatioPct = num("penRatioPct", 0);
+    i.agent.penFlat = num("penFlat", 0);
+
+    i.agent.skillMultPct = num("skillMultPct", 100);
+
+    // Anomaly
+    i.agent.anomaly.type = $("anomType").value;
+    i.agent.anomaly.prof = num("anomProf", 0);
+    i.agent.anomaly.mastery = num("anomMastery", 0);
+    i.agent.anomaly.dmgPct = num("anomDmgPct", 0);
+    i.agent.anomaly.disorderPct = num("disorderDmgPct", 0);
+    i.agent.anomaly.triggersPerRot = num("anomTriggersPerRot", 0);
+    i.agent.anomaly.disorderTriggersPerRot = num("disorderTriggersPerRot", 0);
+
+    // Rupture
+    i.agent.rupture.sheerForce = num("sheerForce", 0);
+    i.agent.rupture.sheerDmgBonusPct = num("sheerDmgBonusPct", 0);
+
+    // Enemy
+    i.enemy.level = num("enemyLevel", 70);
+    i.enemy.def = num("enemyDef", 0);
+
+    i.enemy.resAllPct = num("enemyResAllPct", 0);
+    i.enemy.resPhysicalPct = optNum("enemyResPhysicalPct");
+    i.enemy.resFirePct = optNum("enemyResFirePct");
+    i.enemy.resIcePct = optNum("enemyResIcePct");
+    i.enemy.resElectricPct = optNum("enemyResElectricPct");
+    i.enemy.resEtherPct = optNum("enemyResEtherPct");
+
+    i.enemy.defReductionPct = num("defReductionPct", 0);
+    i.enemy.defIgnorePct = num("defIgnorePct", 0);
+
+    i.enemy.dmgTakenPct = num("dmgTakenPct", 0);
+    i.enemy.isStunned = ($("isStunned").value === "true");
+    i.enemy.stunPct = num("stunPct", 100);
+
+    // Marginal config (legacy fields kept for backward-compatible saves)
+    // The UI controls for these were removed; the table uses per-row Δ Stat inputs.
+    const deltaPresetEl = $("deltaPreset");
+    const basisEl = $("marginalBasis");
+    const topNEl = $("topN");
+    i.marginal.deltaPreset = deltaPresetEl ? deltaPresetEl.value : "1";
+    i.marginal.basis = basisEl ? basisEl.value : "raw";
+    i.marginal.topN = topNEl ? topNEl.value : "all";
+
+    return i;
+  }
+
+  function applyModeVisibility(mode) {
+    const showAnom = (mode === "anomaly" || mode === "hybrid");
+    const showRupture = (mode === "rupture");
+
+    $("anomalyHeader").classList.toggle("hidden", !showAnom);
+    $("anomalyCard").classList.toggle("hidden", !showAnom);
+
+    $("ruptureHeader").classList.toggle("hidden", !showRupture);
+    $("ruptureCard").classList.toggle("hidden", !showRupture);
+  }
+
+  // ===========================
+  // Core formulas (preview output)
+  // ===========================
+  function getResPctForAttribute(enemy, attr) {
+    const map = {
+      physical: enemy.resPhysicalPct,
+      fire: enemy.resFirePct,
+      ice: enemy.resIcePct,
+      electric: enemy.resElectricPct,
+      ether: enemy.resEtherPct,
+    };
+    const specific = map[attr];
+    return (specific !== null && specific !== undefined) ? specific : enemy.resAllPct;
+  }
+
+  function computeDefMult(i) {
+    const aLv = Math.max(1, i.agent.level);
+    const eLv = Math.max(1, i.enemy.level);
+
+    let def = Math.max(0, i.enemy.def);
+
+    // Shred + ignore as additive percent of enemy DEF (applied before PEN flat)
+    const defPctDown = clamp((i.enemy.defReductionPct + i.enemy.defIgnorePct) / 100, 0, 0.95);
+    def = def * (1 - defPctDown);
+
+    // Flat PEN reduces remaining DEF (clamped)
+    const pen = Math.max(0, i.agent.penFlat);
+    def = Math.max(0, def - pen);
+
+    const ratio = clamp(i.agent.penRatioPct / 100, 0, 0.95);
+    def = def * (1 - ratio);
+
+    // Classic (aLv + 100) / (aLv + 100 + def)
+    const k = aLv + 100;
+    const mult = k / (k + def);
+    return mult;
+  }
+
+  function computeResMult(i) {
+    const resPct = getResPctForAttribute(i.enemy, i.agent.attribute);
+    // Simple model: multiplier = 1 - RES (can go above 1 if negative)
+    return 1 - (resPct / 100);
+  }
+
+  function computeStandardOutput(i) {
+    const atk = i.agent.atkBase;
+    const skill = i.agent.skillMultPct / 100;
 
     const dmgPctTotal =
       i.agent.dmgBuckets.generic +
       i.agent.dmgBuckets.attribute +
       i.agent.dmgBuckets.skillType +
       i.agent.dmgBuckets.other +
-      i.agent.dmgBuckets.vsStunned;
+      (i.enemy.isStunned ? i.agent.dmgBuckets.vsStunned : 0);
 
     const dmgMult = pctToMult(dmgPctTotal);
 
-    const critRate = i.agent.crit.rate;
-    const critDmg = i.agent.crit.dmg;
+    const defMult = computeDefMult(i);
+    const resMult = computeResMult(i);
 
-    // Expected crit multiplier: E = 1*(1-CR) + (1+CD)*CR = 1 + CR*CD
-    const critMult_expected = 1 + (critRate * critDmg);
+    const vuln = pctToMult(i.enemy.dmgTakenPct);
+    const stunMult = i.enemy.isStunned ? (i.enemy.stunPct / 100) : 1;
 
+    const base = atk * skill * dmgMult * defMult * resMult * vuln * stunMult;
+
+    const nonCrit = base;
+    const crit = base * (1 + i.agent.crit.dmg);
+
+    const cr = clamp(i.agent.crit.rate, 0, 1);
+    const expected = nonCrit * (1 - cr) + crit * cr;
+
+    return { nonCrit, crit, expected };
+  }
+
+  // NOTE: this is still your existing anomaly model (not crit-enabled).
+  // If you later want “anomaly crit special cases”, we can extend it.
+  const DEFAULT_PROC_COUNT = {
+    assault: 1,
+    burn: 1,
+    shock: 1,
+    shatter: 1,
+    corruption: 1,
+    auto: 1,
+  };
+
+  function inferAnomType(i) {
+    if (i.agent.anomaly.type !== "auto") return i.agent.anomaly.type;
     const attr = i.agent.attribute;
-    const resPct = (i.enemy.resAllPct || 0) + ((i.enemy.resByAttr && i.enemy.resByAttr[attr]) || 0);
-    const resMult = 1 - (resPct / 100);
+    if (attr === "physical") return "assault";
+    if (attr === "fire") return "burn";
+    if (attr === "electric") return "shock";
+    if (attr === "ice") return "shatter";
+    if (attr === "ether") return "corruption";
+    return "assault";
+  }
 
-    const defMult = (i.enemy.defMultOverride !== null && i.enemy.defMultOverride !== undefined)
-      ? clamp(i.enemy.defMultOverride, 0, 1)
-      : computeDefMult(i);
+  function computeAnomalyOutput(i) {
+    const anomType = inferAnomType(i);
+    const procCount = DEFAULT_PROC_COUNT[anomType] ?? 1;
 
-    const dmgTakenPctTotal = i.enemy.dmgTakenPct + i.enemy.dmgTakenStunnedPct;
-    const dmgTakenMultOverride = (i.enemy.enemyDmgTakenMult !== null && i.enemy.enemyDmgTakenMult !== undefined)
-      ? Math.max(0, i.enemy.enemyDmgTakenMult)
-      : 1;
-    const dmgTakenMult = pctToMult(dmgTakenPctTotal) * dmgTakenMultOverride;
+    // Simplified model: base scales with ATK and mastery/prof
+    const atk = i.agent.atkBase;
+    const prof = i.agent.anomaly.prof;
+    const mastery = i.agent.anomaly.mastery;
 
-    const stunMult = i.enemy.stunned ? (i.enemy.stunPct / 100) : 1;
-    const dazeVulnMult = i.enemy.stunned ? i.enemy.dazeVulnMult : 1;
+    // This is placeholder-ish but matches your current approach.
+    const baseAnom = atk * (1 + mastery / 1000) * (1 + prof / 1000);
+    const anomalyMult = pctToMult(i.agent.anomaly.dmgPct);
+    const disorderMult = pctToMult(i.agent.anomaly.disorderPct);
 
-    const specialMult = i.agent.specialMult;
+    const anomalyPerTrigger = baseAnom * anomalyMult * procCount;
+    const disorderPerTrigger = baseAnom * disorderMult * procCount;
+
+    const anomalyPerRot = anomalyPerTrigger * i.agent.anomaly.triggersPerRot;
+    const disorderPerRot = disorderPerTrigger * i.agent.anomaly.disorderTriggersPerRot;
 
     return {
-      atkTotal,
-      atkEffective,
-      base,
-      dmgPctTotal,
-      dmgMult,
-      critRate,
-      critDmg,
-      critMult_expected,
-      defMult,
-      resMult,
-      dmgTakenMult,
-      stunMult,
-      dazeVulnMult,
-      specialMult
+      anomalyPerTrigger,
+      disorderPerTrigger,
+      anomalyPerRot,
+      disorderPerRot,
+      combinedPerRot: anomalyPerRot + disorderPerRot,
     };
+  }
+
+  function computeRuptureOutput(i) {
+    const sheerForce = i.agent.rupture.sheerForce;
+    const sheerBonus = pctToMult(i.agent.rupture.sheerDmgBonusPct);
+
+    // Placeholder: base rupture uses sheerForce scaled by bonus
+    const out = sheerForce * sheerBonus;
+    return { out };
   }
 
   function computePreviewOutput(i) {
-    const z = computeZones(i);
+    const std = computeStandardOutput(i);
+    const anom = computeAnomalyOutput(i);
+    const rup = computeRuptureOutput(i);
 
-    // Base (non-crit) damage
-    const nonCritPerHit =
-      z.base *
-      z.dmgMult *
-      1 *
-      z.defMult *
-      z.resMult *
-      z.dmgTakenMult *
-      z.stunMult *
-      z.dazeVulnMult *
-      z.specialMult;
-
-    // Crit damage (when crit happens)
-    const critPerHit = nonCritPerHit * (1 + z.critDmg);
-
-    // Expected damage (AVG) weighted by crit rate
-    const expectedPerHit = nonCritPerHit * (1 + (z.critRate * z.critDmg));
-
-    const nonCritTotal = nonCritPerHit;
-    const critTotal = critPerHit;
-    const expectedTotal = expectedPerHit;
-
-    // ===== Anomaly / Disorder (ZZZ-style approximation) =====
-    // Community formula summary:
-    // Outgoing Anomaly DMG = Base * DMG% * DEF * RES * DMG Taken * Stun * (AP/100) * BuffLevelMult
-
-    const resolveAnomType = (attr, t) => {
-      if (t && t !== "auto") return t;
-      return ({
-        physical: "assault",
-        fire: "burn",
-        electric: "shock",
-        ice: "shatter",
-        ether: "corruption",
-      }[attr] || "assault");
-    };
-
-    // Base multipliers per anomaly type (per proc/tick/hit)
-    const ANOM_MV_PER_PROC = {
-      burn: 0.50,        // 50% * ATK per tick
-      shock: 1.25,       // 125% * ATK per tick
-      corruption: 0.625, // 62.5% * ATK per tick
-      shatter: 5.00,     // 500% * ATK once
-      assault: 7.13      // 713% * ATK once
-    };
-
-    // Default proc counts for a full trigger window (no timing UI):
-    // Burn/Corruption: 10s @ 0.5s ticks => 20 procs
-    // Shock: 10s @ 1s ticks => 10 procs (cap 16)
-    // Shatter/Assault: 1 proc
-    const DEFAULT_PROC_COUNT = { assault: 1, burn: 20, shock: 10, shatter: 1, corruption: 20 };
-
-    const anomType = resolveAnomType(i.agent.attribute, i.agent.anomaly.type || "auto");
-    const procCount = DEFAULT_PROC_COUNT[anomType] || 1;
-
-    const basePerProc = (ANOM_MV_PER_PROC[anomType] || 0) * Math.max(0, z.atkEffective);
-    const basePerTrigger = basePerProc * procCount;
-
-    // DMG% for anomalies: Generic + Attribute + Anomaly/Disorder bucket (exclude Skill-Type DMG%).
-    const anomalyDmgPctTotal =
-      (i.agent.dmgBuckets.generic || 0) +
-      (i.agent.dmgBuckets.attribute || 0) +
-      (i.agent.dmgBuckets.anomaly || 0);
-
-    const disorderDmgPctTotal =
-      (i.agent.dmgBuckets.generic || 0) +
-      (i.agent.dmgBuckets.attribute || 0) +
-      (i.agent.dmgBuckets.disorder || 0);
-
-    const anomalyMult = pctToMult(anomalyDmgPctTotal);
-    const disorderMult = pctToMult(disorderDmgPctTotal);
-
-    // AP bonus: AP / 100 (so 100 AP = 1.00x)
-    const apBonus = Math.max(0, i.agent.anomaly.proficiency || 0) / 100;
-
-    // Buff level multiplier approximation (community guide): 1 + 0.0169 * (Level - 1)
-    const buffLvlMult = 1 + 0.0169 * (Math.max(1, i.agent.level) - 1);
-
-    // Anomalies typically cannot crit (we keep crit disabled in UI), so no crit multiplier here.
-
-    const anomalyPerTrigger =
-      basePerTrigger *
-      anomalyMult *
-      z.defMult *
-      z.resMult *
-      z.dmgTakenMult *
-      z.stunMult *
-      apBonus *
-      buffLvlMult;
-
-    // Disorder approximation:
-    // Based on remaining procs; without timing UI we assume full remaining procs.
-    // Shock disorder adds +6 extra procs.
-    const disorderExtraProcs = (anomType === "shock") ? 6 : 0;
-    const disorderBase = basePerProc * (procCount + disorderExtraProcs);
-
-    const disorderPerTrigger =
-      disorderBase *
-      disorderMult *
-      z.defMult *
-      z.resMult *
-      z.dmgTakenMult *
-      z.stunMult *
-      apBonus *
-      buffLvlMult;
-
-    const anomalyPerRot = anomalyPerTrigger * (i.agent.anomaly.triggersPerRot || 0);
-    const disorderPerRot = disorderPerTrigger * (i.agent.anomaly.disorderTriggersPerRot || 0);
-
-    const anomalyPerProc = procCount > 0 ? (anomalyPerTrigger / procCount) : 0;
-
-
-    const sheerFromAtk = z.atkEffective * (i.agent.rupture.atkToSheerPct / 100);
-    const sheerForceEffective = i.agent.rupture.sheerForce + sheerFromAtk;
-    const sheerDmgMult = pctToMult(i.agent.rupture.sheerDmgBonusPct);
-    const sheerPerHit =
-      sheerForceEffective *
-      (i.agent.skillMultPct / 100) *
-      sheerDmgMult *
-      z.resMult *
-      z.dmgTakenMult *
-      z.stunMult *
-      z.dazeVulnMult *
-      z.specialMult;
-
-    let outputNonCrit = nonCritTotal;
-    let outputCrit = critTotal;
-    let outputExpected = expectedTotal;
+    if (i.mode === "standard") {
+      return {
+        mode: i.mode,
+        output_noncrit: std.nonCrit,
+        output_crit: std.crit,
+        output_expected: std.expected,
+        output: std.expected,
+      };
+    }
 
     if (i.mode === "anomaly") {
-      // Anomaly is typically non-crit (so AVG = total)
-      outputNonCrit = anomalyPerRot + disorderPerRot;
-      outputCrit = outputNonCrit;
-      outputExpected = outputNonCrit;
+      return {
+        mode: i.mode,
+        anomaly_per_trigger: anom.anomalyPerTrigger,
+        disorder_per_trigger: anom.disorderPerTrigger,
+        anomaly_per_rotation: anom.anomalyPerRot,
+        disorder_per_rotation: anom.disorderPerRot,
+        output_expected: anom.combinedPerRot,
+        output: anom.combinedPerRot,
+      };
     }
+
     if (i.mode === "rupture") {
-      // Rupture is typically non-crit (so AVG = total)
-      outputNonCrit = sheerPerHit;
-      outputCrit = outputNonCrit;
-      outputExpected = outputNonCrit;
-    }
-    if (i.mode === "hybrid") {
-      const add = anomalyPerRot + disorderPerRot;
-      outputNonCrit = nonCritTotal + add;
-      outputCrit = critTotal + add;
-      outputExpected = expectedTotal + add;
+      return {
+        mode: i.mode,
+        rupture: rup.out,
+        output_expected: rup.out,
+        output: rup.out,
+      };
     }
 
+    // hybrid
     return {
-      zones: z,
-
-      standard_noncrit_per_hit: nonCritPerHit,
-      standard_crit_per_hit: critPerHit,
-      standard_expected_per_hit: expectedPerHit,
-      standard_noncrit_total: nonCritTotal,
-      standard_crit_total: critTotal,
-      standard_expected_total: expectedTotal,
-
-      anomaly_total: anomalyPerRot + disorderPerRot,
-      anomaly_per_trigger: anomalyPerTrigger,
-      anomaly_per_proc: anomalyPerProc,
-      anomaly_proc_count: procCount,
-      anomaly_type: anomType,
-      rupture_total: sheerPerHit,
-
-      output_noncrit: outputNonCrit,
-      output_crit: outputCrit,
-      output_expected: outputExpected,
-      output: outputExpected
+      mode: i.mode,
+      output_noncrit: std.nonCrit,
+      output_crit: std.crit,
+      output_expected: std.expected + anom.combinedPerRot,
+      output: std.expected + anom.combinedPerRot,
     };
   }
 
   // ===========================
-  // Diminishing returns / marginal value table
+  // Marginal analysis
   // ===========================
-  function getDeltaConfig() {
-    const p = Number($("deltaPreset").value);
-    const basis = $("marginalBasis") ? $("marginalBasis").value : "raw";
-
-    const equiv = {
-      main: { penRatioPct: 24, dmgAttrPct: 30, hpPct: 30, critRatePct: null, critDmgPct: null },
-      sub:  { penRatioPct: null, dmgAttrPct: null, hpPct: 3,  critRatePct: 2.4, critDmgPct: 4.8 }
-    };
-
-    return {
-      basis,
-      raw: { pct: p, atkFlat: p * 10, penFlat: p * 10 },
-      equiv
-    };
+  function getDefaultAppliedForKey(key) {
+    if (key === "atkBase") return { kind: "flat", value: DEFAULT_DELTA.atk };
+    if (key === "penFlat") return { kind: "flat", value: DEFAULT_DELTA.penFlat };
+    if (key === "sheerForce") return { kind: "flat", value: DEFAULT_DELTA.sheerForce };
+    return { kind: "pct", value: DEFAULT_DELTA.pct };
   }
 
-  function getDeltaForKey(key, i, cfg) {
-    const raw = cfg.raw;
-
-    if (cfg.basis === "raw") {
-      if (key === "atkBase") return { kind: "flat", value: raw.atkFlat };
-      if (key === "penFlat" || key === "sheerForce") return { kind: "flat", value: raw.penFlat };
-      return { kind: "pct", value: raw.pct };
-    }
-
-    const eq = cfg.equiv[cfg.basis] || {};
-    const pctOrRaw = (v) => (typeof v === "number" && !Number.isNaN(v)) ? v : raw.pct;
-
-    switch (key) {
-      case "atkBase":
-        return { kind: "flat", value: raw.atkFlat };
-
-      case "dmgAttrPct":
-        return { kind: "pct", value: pctOrRaw(eq.dmgAttrPct) };
-
-      case "penRatioPct":
-        return { kind: "pct", value: pctOrRaw(eq.penRatioPct) };
-
-      case "critRatePct":
-        return { kind: "pct", value: pctOrRaw(eq.critRatePct) };
-      case "critDmgPct":
-        return { kind: "pct", value: pctOrRaw(eq.critDmgPct) };
-
-      default:
-        if (key === "penFlat" || key === "sheerForce") return { kind: "flat", value: raw.penFlat };
-        return { kind: "pct", value: raw.pct };
-    }
-  }
-
-  function clone(obj) {
-    return JSON.parse(JSON.stringify(obj));
-  }
-
-  function applyDelta(i, key, deltaCfg) {
+  function applyDelta(i, key, overrideDelta = null) {
     const j = clone(i);
-    const d = getDeltaForKey(key, i, deltaCfg);
+    const d = (overrideDelta && Number.isFinite(overrideDelta.value))
+      ? overrideDelta
+      : getDefaultAppliedForKey(key);
 
-    const dp = (d.kind === "pct") ? d.value : deltaCfg.raw.pct;
-    const df = (d.kind === "flat") ? d.value : deltaCfg.raw.penFlat;
+    const dp = (d.kind === "pct") ? d.value : DEFAULT_DELTA.pct;
+    const df = (d.kind === "flat") ? d.value : DEFAULT_DELTA.penFlat;
 
     switch (key) {
       case "atkBase": j.agent.atkBase += df; break;
@@ -489,84 +437,48 @@
       case "dmgGenericPct": j.agent.dmgBuckets.generic += dp; break;
       case "dmgAttrPct": j.agent.dmgBuckets.attribute += dp; break;
       case "dmgSkillTypePct": j.agent.dmgBuckets.skillType += dp; break;
-      case "dmgOtherPct": j.agent.dmgBuckets.other += dp; break;
-      case "dmgVsStunnedPct": j.agent.dmgBuckets.vsStunned += dp; break;
 
       case "critRatePct":
         j.agent.crit.rate = clamp(j.agent.crit.rate + (dp / 100), 0, 1); break;
       case "critDmgPct":
         j.agent.crit.dmg += (dp / 100); break;
 
-      case "dmgTakenPct": j.enemy.dmgTakenPct += dp; break;
-      case "dmgTakenStunnedPct": j.enemy.dmgTakenStunnedPct += dp; break;
-      case "stunPct": j.enemy.stunPct += dp; break;
-      case "dazeVulnMult":
-        j.enemy.dazeVulnMult += 0.05 * (deltaCfg.raw.pct / 5); break;
-
-      case "defReductionPct": j.enemy.defReductionPct += dp; break;
       case "penRatioPct": j.agent.penRatioPct += dp; break;
       case "penFlat": j.agent.penFlat += df; break;
-      case "defIgnorePct": j.agent.defIgnorePct += dp; break;
+
+      case "dmgTakenPct": j.enemy.dmgTakenPct += dp; break;
+      case "stunPct": j.enemy.stunPct += dp; break;
+
+      case "defReductionPct": j.enemy.defReductionPct += dp; break;
+      case "defIgnorePct": j.enemy.defIgnorePct += dp; break;
+
+      case "anomDmgPct": j.agent.anomaly.dmgPct += dp; break;
+      case "disorderDmgPct": j.agent.anomaly.disorderPct += dp; break;
 
       case "sheerForce": j.agent.rupture.sheerForce += df; break;
       case "sheerDmgBonusPct": j.agent.rupture.sheerDmgBonusPct += dp; break;
-
-      case "anomDmgPct": j.agent.dmgBuckets.anomaly += dp; break;
-      case "disorderDmgPct": j.agent.dmgBuckets.disorder += dp; break;
-
-      default: break;
     }
+
     return { j, applied: d };
-  }
-
-  function statMeta() {
-    return [
-      { key:"atkBase",         label:"Total ATK" },
-
-      { key:"dmgGenericPct",   label:"Generic DMG%" },
-      { key:"dmgAttrPct",      label:"Attribute DMG%" },
-      { key:"dmgSkillTypePct", label:"Skill DMG% (Basic/Special/Ult)" },
-
-      { key:"critRatePct",     label:"Crit Rate (%)" },
-      { key:"critDmgPct",      label:"Crit DMG (%)" },
-
-      { key:"dmgTakenPct",     label:"Damage Taken +%" },
-      { key:"stunPct",         label:"Stunned Multiplier (%)" },
-
-      { key:"defReductionPct", label:"DEF Reduction (%)" },
-      { key:"penRatioPct",     label:"PEN Ratio (%)" },
-      { key:"penFlat",         label:"PEN" },
-      { key:"defIgnorePct",    label:"DEF Ignore (%)" },
-
-      { key:"sheerForce",      label:"Sheer Force" },
-      { key:"sheerDmgBonusPct",label:"Sheer DMG Bonus (%)" },
-
-      { key:"anomDmgPct",      label:"Anomaly DMG%" },
-      { key:"disorderDmgPct",  label:"Disorder DMG%" },
-    ];
   }
 
   function computeMarginals(i) {
     const base = computePreviewOutput(i);
     const baseOut = base.output;
 
-    const deltaCfg = getDeltaConfig();
-
     const rows = [];
     for (const m of statMeta()) {
       if (i.mode !== "rupture" && (m.key === "sheerForce" || m.key === "sheerDmgBonusPct")) continue;
       if (i.mode === "standard" && (m.key === "anomDmgPct" || m.key === "disorderDmgPct")) continue;
 
-      const { j, applied } = applyDelta(i, m.key, deltaCfg);
+      const override = CUSTOM_APPLIED[m.key] ?? null;
+      const { j, applied } = applyDelta(i, m.key, override);
       const out2 = computePreviewOutput(j).output;
       const gain = out2 - baseOut;
       const pctGain = baseOut !== 0 ? (gain / baseOut) * 100 : 0;
 
       let deltaText = "";
-      if (m.key === "dazeVulnMult") {
-        const step = 0.05 * (deltaCfg.raw.pct / 5);
-        deltaText = `+${fmt1(step)} mult`;
-      } else if (m.key === "atkBase") {
+      if (m.key === "atkBase") {
         deltaText = `+${fmt1(applied.value)} ATK`;
       } else if (applied.kind === "flat") {
         deltaText = `+${fmt1(applied.value)} (flat)`;
@@ -574,7 +486,7 @@
         deltaText = `+${fmt1(applied.value)}%`;
       }
 
-      rows.push({ ...m, deltaText, out2, gain, pctGain });
+      rows.push({ ...m, applied, deltaText, out2, gain, pctGain });
     }
 
     rows.sort((a,b) => b.pctGain - a.pctGain);
@@ -584,10 +496,78 @@
   // ===========================
   // Save/Load/Export/Import
   // ===========================
+  function getAllSaves() {
+    try {
+      return JSON.parse(localStorage.getItem("zzz_calc_saves") || "{}");
+    } catch {
+      return {};
+    }
+  }
+  function setAllSaves(saves) {
+    localStorage.setItem("zzz_calc_saves", JSON.stringify(saves));
+  }
+
+  function applyImportedData(data) {
+    // minimal: write values back to UI (keeping ids stable)
+    $("saveName").value = data.saveName ?? "1";
+    $("mode").value = data.mode ?? "standard";
+
+    $("agentLevel").value = data.agent?.level ?? 60;
+    $("attribute").value = data.agent?.attribute ?? "physical";
+    $("atkBase").value = data.agent?.atkBase ?? 0;
+
+    $("critRatePct").value = ((data.agent?.crit?.rate ?? 0) * 100);
+    $("critDmgPct").value = ((data.agent?.crit?.dmg ?? 0) * 100);
+
+    $("dmgGenericPct").value = data.agent?.dmgBuckets?.generic ?? 0;
+    $("dmgAttrPct").value = data.agent?.dmgBuckets?.attribute ?? 0;
+    $("dmgSkillTypePct").value = data.agent?.dmgBuckets?.skillType ?? 0;
+
+    $("penRatioPct").value = data.agent?.penRatioPct ?? 0;
+    $("penFlat").value = data.agent?.penFlat ?? 0;
+
+    $("skillMultPct").value = data.agent?.skillMultPct ?? 100;
+
+    $("anomType").value = data.agent?.anomaly?.type ?? "auto";
+    $("anomProf").value = data.agent?.anomaly?.prof ?? 0;
+    $("anomMastery").value = data.agent?.anomaly?.mastery ?? 0;
+    $("anomDmgPct").value = data.agent?.anomaly?.dmgPct ?? 0;
+    $("disorderDmgPct").value = data.agent?.anomaly?.disorderPct ?? 0;
+    $("anomTriggersPerRot").value = data.agent?.anomaly?.triggersPerRot ?? 0;
+    $("disorderTriggersPerRot").value = data.agent?.anomaly?.disorderTriggersPerRot ?? 0;
+
+    $("sheerForce").value = data.agent?.rupture?.sheerForce ?? 0;
+    $("sheerDmgBonusPct").value = data.agent?.rupture?.sheerDmgBonusPct ?? 0;
+
+    $("enemyLevel").value = data.enemy?.level ?? 70;
+    $("enemyDef").value = data.enemy?.def ?? 0;
+
+    $("enemyResAllPct").value = data.enemy?.resAllPct ?? 0;
+    $("enemyResPhysicalPct").value = data.enemy?.resPhysicalPct ?? "";
+    $("enemyResFirePct").value = data.enemy?.resFirePct ?? "";
+    $("enemyResIcePct").value = data.enemy?.resIcePct ?? "";
+    $("enemyResElectricPct").value = data.enemy?.resElectricPct ?? "";
+    $("enemyResEtherPct").value = data.enemy?.resEtherPct ?? "";
+
+    $("defReductionPct").value = data.enemy?.defReductionPct ?? 0;
+    $("defIgnorePct").value = data.enemy?.defIgnorePct ?? 0;
+
+    $("dmgTakenPct").value = data.enemy?.dmgTakenPct ?? 0;
+    $("isStunned").value = String(data.enemy?.isStunned ?? false);
+    $("stunPct").value = data.enemy?.stunPct ?? 100;
+
+    // Legacy (controls removed)
+    const dpEl = $("deltaPreset");
+    const mbEl = $("marginalBasis");
+    const tnEl = $("topN");
+    if (dpEl) dpEl.value = data.marginal?.deltaPreset ?? "1";
+    if (mbEl) mbEl.value = data.marginal?.basis ?? "raw";
+    if (tnEl) tnEl.value = data.marginal?.topN ?? "all";
+  }
+
   function saveBuild() {
     const data = readInputs();
     const name = (data.saveName || "").trim() || "My Build";
-    data.saveName = name;
     const saves = getAllSaves();
     saves[name] = data;
     setAllSaves(saves);
@@ -610,120 +590,32 @@
   function exportJSON() {
     const data = readInputs();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${(data.saveName || "build").replaceAll(" ", "_")}.json`;
+    a.href = url;
+    a.download = "zzz_build.json";
     a.click();
-    URL.revokeObjectURL(a.href);
+    URL.revokeObjectURL(url);
   }
 
   function importJSONFile(file) {
-    const r = new FileReader();
-    r.onload = () => {
-      try { applyInputs(JSON.parse(r.result)); refresh(); }
-      catch { alert("Invalid JSON."); }
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        applyImportedData(data);
+        refresh();
+        alert("Imported.");
+      } catch (e) {
+        alert("Invalid JSON.");
+      }
     };
-    r.readAsText(file);
-  }
-
-  // ===========================
-  // Apply inputs to form
-  // ===========================
-  function setVal(id, v) { const el = $(id); if (el) el.value = v; }
-
-  function applyInputs(d) {
-    setVal("saveName", d.saveName ?? "My Build");
-    setVal("mode", d.mode ?? "standard");
-
-    setVal("agentLevel", d.agent?.level ?? 60);
-    setVal("atkBase", d.agent?.atkBase ?? d.agent?.atkFlat ?? 2000);
-    setVal("atkFlatBonus", d.agent?.atkFlatBonus ?? 0);
-    setVal("skillMultPct", d.agent?.skillMultPct ?? 300);
-    setVal("critRatePct", ((d.agent?.crit?.rate ?? 0.5) * 100));
-    setVal("critDmgPct", ((d.agent?.crit?.dmg ?? 1.0) * 100));
-    setVal("attribute", d.agent?.attribute ?? "physical");
-    setVal("specialMult", d.agent?.specialMult ?? 1);
-
-    const b = d.agent?.dmgBuckets ?? {};
-    setVal("dmgGenericPct", b.generic ?? 0);
-    setVal("dmgAttrPct", b.attribute ?? 0);
-    setVal("dmgSkillTypePct", b.skillType ?? 0);
-    setVal("dmgOtherPct", b.other ?? 0);
-    setVal("dmgVsStunnedPct", b.vsStunned ?? 0);
-    setVal("anomDmgPct", b.anomaly ?? 0);
-    setVal("disorderDmgPct", b.disorder ?? 0);
-
-    setVal("enemyLevel", d.enemy?.level ?? 60);
-    setVal("enemyDef", d.enemy?.def ?? 0);
-    setVal("enemyResAllPct", d.enemy?.resAllPct ?? 0);
-    setVal("enemyResPhysicalPct", d.enemy?.resByAttr?.physical ?? "");
-    setVal("enemyResFirePct", d.enemy?.resByAttr?.fire ?? "");
-    setVal("enemyResIcePct", d.enemy?.resByAttr?.ice ?? "");
-    setVal("enemyResElectricPct", d.enemy?.resByAttr?.electric ?? "");
-    setVal("enemyResEtherPct", d.enemy?.resByAttr?.ether ?? "");
-    setVal("defReductionPct", d.enemy?.defReductionPct ?? 0);
-    setVal("penRatioPct", d.agent?.penRatioPct ?? 0);
-    setVal("penFlat", d.agent?.penFlat ?? 0);
-    setVal("defIgnorePct", d.agent?.defIgnorePct ?? 0);
-
-    const defOverride = (d.enemy?.defMultOverride !== undefined && d.enemy?.defMultOverride !== null)
-      ? d.enemy.defMultOverride
-      : ((d.enemy?.useManualDefMult) ? (d.enemy?.defMultManual ?? 1) : null);
-    setVal("defMultOverride", defOverride ?? "");
-    setVal("enemyDmgTakenMult", (d.enemy?.enemyDmgTakenMult ?? "") );
-
-    setVal("dmgTakenPct", d.enemy?.dmgTakenPct ?? 0);
-    setVal("isStunned", String(!!d.enemy?.stunned));
-    setVal("stunPct", d.enemy?.stunPct ?? 100);
-    setVal("dmgTakenStunnedPct", d.enemy?.dmgTakenStunnedPct ?? 0);
-    setVal("dazeVulnMult", d.enemy?.dazeVulnMult ?? 1);
-
-    setVal("sheerForce", d.agent?.rupture?.sheerForce ?? 0);
-    setVal("sheerDmgBonusPct", d.agent?.rupture?.sheerDmgBonusPct ?? 0);
-    setVal("atkToSheerPct", d.agent?.rupture?.atkToSheerPct ?? 30);
-
-    setVal("anomMastery", d.agent?.anomaly?.mastery ?? 0);
-    setVal("anomProf", d.agent?.anomaly?.proficiency ?? 0);
-    setVal("anomBaseManual", d.agent?.anomaly?.baseManual ?? 0);
-    setVal("anomTriggersPerRot", d.agent?.anomaly?.triggersPerRot ?? 0);
-    setVal("disorderTriggersPerRot", d.agent?.anomaly?.disorderTriggersPerRot ?? 0);
-    setVal("anomSpecialMult", d.agent?.anomaly?.specialMult ?? 1);
+    reader.readAsText(file);
   }
 
   function resetAll() {
-    applyInputs({
-      saveName: "My Build",
-      mode: "standard",
-      agent: {
-        level: 60,
-        atkBase: 2000, atkFlatBonus: 0, attribute: "physical",
-        skillMultPct: 300, specialMult: 1,
-        crit: { rate: 0.5, dmg: 1.0 },
-        dmgBuckets: { generic:0, attribute:0, skillType:0, other:0, vsStunned:0, anomaly:0, disorder:0 },
-        penRatioPct: 0, penFlat: 0, defIgnorePct: 0,
-        rupture: { sheerForce: 0, sheerDmgBonusPct: 0, atkToSheerPct: 30 },
-        anomaly: { mastery: 0, proficiency: 0, baseManual: 0, triggersPerRot: 0, disorderTriggersPerRot: 0, specialMult: 1 }
-      },
-      enemy: {
-        level: 60, def: 0, resAllPct: 0, resByAttr: { physical:0, fire:0, ice:0, electric:0, ether:0 },
-        defReductionPct: 0, defMultOverride: null, enemyDmgTakenMult: null,
-        dmgTakenPct: 0, stunned: false, stunPct: 100, dmgTakenStunnedPct: 0, dazeVulnMult: 1
-      },
-      meta: {}
-    });
+    applyImportedData(defaultInputs());
     refresh();
-  }
-
-  // ===========================
-  // Visibility controls
-  // ===========================
-  function applyModeVisibility(mode) {
-    const showAnom = (mode === "anomaly" || mode === "hybrid");
-    const showRupture = (mode === "rupture");
-    $("anomalyHeader").classList.toggle("hidden", !showAnom);
-    $("anomalyCard").classList.toggle("hidden", !showAnom);
-    $("ruptureHeader").classList.toggle("hidden", !showRupture);
-    $("ruptureCard").classList.toggle("hidden", !showRupture);
   }
 
   // ===========================
@@ -735,36 +627,29 @@
 
     const out = computePreviewOutput(i);
 
-    // KPI tiles: show only what matches the selected mode
     const mode = i.mode;
     const labelPrefix =
       (mode === "standard") ? "Output" :
       (mode === "anomaly")  ? "Anomaly Output" :
       (mode === "rupture")  ? "Rupture Output" :
-      "Combined Output"; // hybrid
+      "Combined Output";
 
     const kpiItems = [
-      { t:`${labelPrefix} (AVG)`,    v: fmt0(out.output_expected) },
-      { t:`${labelPrefix} (Normal)`, v: fmt0(out.output_noncrit) },
-      { t:`${labelPrefix} (Crit)`,   v: fmt0(out.output_crit) },
+      { t:`DMG (AVG)`,    v: fmt0(out.output_expected) },
     ];
 
-    if (mode === "anomaly") {
-      const typeLabel = (out.anomaly_type || "").replace(/(^\w|_\w)/g, (m) => m.replace("_"," ").toUpperCase());
-      kpiItems.push(
-        { t:"Anomaly Total (per rotation)", v: fmt0(out.anomaly_total) },
-        { t:`Anomaly Per Trigger (${typeLabel || "Auto"})`, v: fmt0(out.anomaly_per_trigger) },
-        { t:"Anomaly Per Proc/Tick", v: fmt0(out.anomaly_per_proc) },
-        { t:"Anomaly Proc Count", v: String(out.anomaly_proc_count ?? "") },
-      );
+    if (mode === "standard" || mode === "hybrid") {
+      kpiItems.push({ t:`DMG (Non-Crit)`, v: fmt0(out.output_noncrit) });
+      kpiItems.push({ t:`DMG (Crit)`,     v: fmt0(out.output_crit) });
     }
 
-    if (mode === "hybrid") {
-      kpiItems.push(
-        { t:"Standard (AVG) only", v: fmt0(out.standard_expected_total) },
-        { t:"Anomaly Total",       v: fmt0(out.anomaly_total) },
-        { t:"Anomaly Per Proc/Tick", v: fmt0(out.anomaly_per_proc) },
-      );
+    if (mode === "anomaly" || mode === "hybrid") {
+      kpiItems.push({ t:`Anomaly/Rot`,   v: fmt0(out.anomaly_per_rotation ?? 0) });
+      kpiItems.push({ t:`Disorder/Rot`,  v: fmt0(out.disorder_per_rotation ?? 0) });
+    }
+
+    if (mode === "rupture") {
+      kpiItems.push({ t:`Rupture`, v: fmt0(out.rupture ?? 0) });
     }
 
     $("kpi").innerHTML = kpiItems
@@ -773,18 +658,39 @@
 
     const { rows } = computeMarginals(i);
 
-    const topSel = $("topN").value;
-    const shown = (topSel === "all") ? rows : rows.slice(0, Number(topSel));
+    $("marginalBody").innerHTML = rows.map(r => {
+      const kind = r.applied?.kind ?? "pct";
+      const val = r.applied?.value ?? 0;
 
-    $("marginalBody").innerHTML = shown.map(r => `
+      const unit = (r.key === "atkBase") ? "ATK"
+                : (kind === "flat") ? "flat"
+                : "%";
+
+      const step = (kind === "flat") ? 1 : 0.1;
+
+      return `
       <tr>
         <td>${r.label}</td>
-        <td>${r.deltaText}</td>
+        <td>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input
+              class="appliedDelta"
+              data-key="${r.key}"
+              data-kind="${kind}"
+              type="number"
+              step="${step}"
+              value="${String(val)}"
+              style="width:110px; padding:6px 8px; border-radius:10px;"
+            />
+            <span class="muted">${unit}</span>
+          </div>
+        </td>
         <td>${fmt0(r.out2)}</td>
         <td>${fmt1(r.gain)}</td>
         <td>${fmt1(r.pctGain)}%</td>
       </tr>
-    `).join("");
+    `;
+    }).join("");
   }
 
   // ===========================
@@ -801,9 +707,30 @@
   });
   $("btnReset").addEventListener("click", resetAll);
 
-  document.querySelectorAll("input, select").forEach(el => {
+  document.querySelectorAll("input:not(.appliedDelta), select").forEach(el => {
     el.addEventListener("input", refresh);
     el.addEventListener("change", refresh);
+  });
+
+  // Editable “Applied” inputs inside the marginal table
+  $("marginalBody").addEventListener("change", (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLInputElement)) return;
+    if (!t.classList.contains("appliedDelta")) return;
+
+    const key = t.dataset.key;
+    const kind = t.dataset.kind === "flat" ? "flat" : "pct";
+    const v = Number(t.value);
+
+    if (!key) return;
+
+    if (!Number.isFinite(v)) {
+      delete CUSTOM_APPLIED[key];
+    } else {
+      CUSTOM_APPLIED[key] = { kind, value: v };
+    }
+
+    refresh();
   });
 
   // Init

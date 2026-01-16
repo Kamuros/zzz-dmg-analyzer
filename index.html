@@ -37,7 +37,8 @@
   <h2>Agent Stats</h2>
   <div class="card">
     <div class="form">
-      <div class="form-row cols-2">
+      <div class="form-row cols-3">
+        <label>Agent Level <input id="agentLevel" type="number" value="60" min="1" step="1"/></label>
         <label>
           Attribute
           <select id="attribute">
@@ -48,24 +49,20 @@
             <option value="ether">Ether</option>
           </select>
         </label>
-        <label>Agent Level <input id="agentLevel" type="number" value="60" min="1" step="1"/></label>
+        <label>Total ATK <input id="atkBase" type="number" value="1000" min="0" step="1"/></label>
       </div>
 
-      <!-- Row 2: 2 -->
-      <div class="form-row cols-3">
-        <label>Total ATK <input id="atkBase" type="number" value="1000" min="0" step="1"/></label>
+      <div class="form-row cols-2">
         <label>Crit Rate (%) <input id="critRatePct" type="number" value="5" min="0" max="100" step="0.1"/></label>
         <label>Crit DMG (%) <input id="critDmgPct" type="number" value="50" min="0" step="0.1"/></label>
       </div>
 
-      <!-- Row 3: 3 -->
       <div class="form-row cols-3">
         <label>Generic DMG% <input id="dmgGenericPct" type="number" value="0" step="0.1"/></label>
         <label>Attribute DMG% <input id="dmgAttrPct" type="number" value="0" step="0.1"/></label>
         <label>Skill DMG% (Basic/Special/Ult) <input id="dmgSkillTypePct" type="number" value="0" step="0.1"/></label>
       </div>
 
-      <!-- Row 4: 3 -->
       <div class="form-row cols-3">
         <label>PEN Ratio (%) <input id="penRatioPct" type="number" value="0" step="0.1"/></label>
         <label>PEN <input id="penFlat" type="number" value="0" step="1"/></label>
@@ -77,7 +74,6 @@
   <h2 id="anomalyHeader">Anomaly</h2>
   <div class="card" id="anomalyCard">
     <div class="form">
-      <!-- Row 1: 2 -->
       <div class="form-row cols-2">
         <label>
           Anomaly Type
@@ -93,14 +89,12 @@
         <label>Anomaly Proficiency <input id="anomProf" type="number" value="0" step="1"/></label>
       </div>
 
-      <!-- Row 2: 3 -->
       <div class="form-row cols-3">
         <label>Anomaly Mastery <input id="anomMastery" type="number" value="0" step="1"/></label>
         <label>Anomaly DMG% <input id="anomDmgPct" type="number" value="0" step="0.1"/></label>
         <label>Disorder DMG% <input id="disorderDmgPct" type="number" value="0" step="0.1"/></label>
       </div>
 
-      <!-- Row 3: 2 -->
       <div class="form-row cols-2">
         <label>Triggers Per Rotation <input id="anomTriggersPerRot" type="number" value="0" step="0.1"/></label>
         <label>Disorder Triggers Per Rotation <input id="disorderTriggersPerRot" type="number" value="0" step="0.1"/></label>
@@ -108,10 +102,9 @@
     </div>
   </div>
 
-  <h2 id="ruptureHeader">Rupture</h2>
+  <h2 id="ruptureHeader">Rupture — Sheer Force / Sheer DMG Bonus</h2>
   <div class="card" id="ruptureCard">
     <div class="form">
-      <!-- Row 1: 2 -->
       <div class="form-row cols-2">
         <label>Sheer Force <input id="sheerForce" type="number" value="0" step="1"/></label>
         <label>Sheer DMG Bonus (%) <input id="sheerDmgBonusPct" type="number" value="0" step="0.1"/></label>
@@ -122,35 +115,30 @@
   <h2>Enemy</h2>
   <div class="card">
     <div class="form">
-      <!-- Row 1: 3 -->
       <div class="form-row cols-3">
         <label>Enemy Level <input id="enemyLevel" type="number" value="70" min="1" step="1"/></label>
         <label>Enemy DEF <input id="enemyDef" type="number" value="953" min="0" step="1"/></label>
-        <label>Attribute RES (%) <input id="enemyResAllPct" type="number" value="0" step="0.1"/></label>
+        <label>All Attribute RES (%) <input id="enemyResAllPct" type="number" value="0" step="0.1"/></label>
       </div>
 
-      <!-- Row 2: 3 -->
       <div class="form-row cols-3">
-        <label>Physical RES (%) <input id="enemyResPhysicalPct" type="number" value="" step="0.1"/></label>
-        <label>Fire RES (%) <input id="enemyResFirePct" type="number" value="" step="0.1"/></label>
-        <label>Ice RES (%) <input id="enemyResIcePct" type="number" value="" step="0.1"/></label>
+        <label>Physical RES (%) <input id="enemyResPhysicalPct" type="number" value="" step="0.1" placeholder="(optional)"/></label>
+        <label>Fire RES (%) <input id="enemyResFirePct" type="number" value="" step="0.1" placeholder="(optional)"/></label>
+        <label>Ice RES (%) <input id="enemyResIcePct" type="number" value="" step="0.1" placeholder="(optional)"/></label>
       </div>
 
-      <!-- Row 3: 2 (or make cols-3 if you add more) -->
       <div class="form-row cols-2">
-        <label>Electric RES (%) <input id="enemyResElectricPct" type="number" value="" step="0.1"/></label>
-        <label>Ether RES (%) <input id="enemyResEtherPct" type="number" value="" step="0.1"/></label>
+        <label>Electric RES (%) <input id="enemyResElectricPct" type="number" value="" step="0.1" placeholder="(optional)"/></label>
+        <label>Ether RES (%) <input id="enemyResEtherPct" type="number" value="" step="0.1" placeholder="(optional)"/></label>
       </div>
 
-      <!-- Row 4: 2 -->
       <div class="form-row cols-2">
         <label>DEF Reduction (%) <input id="defReductionPct" type="number" value="0" step="0.1"/></label>
         <label>DEF Ignore (%) <input id="defIgnorePct" type="number" value="0" step="0.1"/></label>
       </div>
 
-      <!-- Row 5: 3 -->
       <div class="form-row cols-3">
-        <label>Damage Taken +% <input id="dmgTakenPct" type="number" value="0" step="0.1"/></label>
+        <label>DMG Taken (%) <input id="dmgTakenPct" type="number" value="0" step="0.1"/></label>
         <label>Stunned?
           <select id="isStunned">
             <option value="false">No</option>
@@ -170,43 +158,12 @@
     <div class="kpi" id="kpi"></div>
 
     <div class="hr"></div>
-
-    <div class="row">
-      <label>
-        Marginal analysis step size
-        <select id="deltaPreset">
-          <option value="1">+1% (for % stats), +10 ATK, +10 PEN</option>
-          <option value="5">+5% (for % stats), +50 ATK, +50 PEN</option>
-          <option value="10">+10% (for % stats), +100 ATK, +100 PEN</option>
-        </select>
-      </label>
-
-      <label>
-        Comparison basis (Drive Disc equivalence)
-        <select id="marginalBasis">
-          <option value="raw" selected>Raw step size above</option>
-          <option value="main">Drive Disc main stat equivalence</option>
-          <option value="sub">Substat roll equivalence</option>
-        </select>
-      </label>
-
-      <label>
-        Show top N most efficient stats
-        <select id="topN">
-          <option value="5">5</option>
-          <option value="10">10</option>
-          <option value="all" selected>All</option>
-        </select>
-      </label>
-    </div>
-
-    <div class="hr"></div>
-
+  
     <table>
       <thead>
         <tr>
           <th>Stat</th>
-          <th>Applied</th>
+          <th>Δ Stat</th>
           <th>New Output</th>
           <th>DMG Gain</th>
           <th>DMG Gain (%)</th>
