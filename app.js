@@ -44,6 +44,7 @@
   // ===========================
   function defaultInputs() {
     return {
+      saveName: "1",
       mode: "standard",
 
       agent: {
@@ -99,12 +100,9 @@
         level: 70,
         def: 953,
 
-        resAllPct: 0,
-        resPhysicalPct: null,
-        resFirePct: null,
-        resIcePct: null,
-        resElectricPct: null,
-        resEtherPct: null,
+        // Single RES input applied to the agent's current attribute.
+        // (Removed per-attribute RES fields to simplify UI and saves.)
+        resPct: 0,
 
         defReductionPct: 0,
         defIgnorePct: 0,
@@ -164,6 +162,8 @@
   // ===========================
   function readInputs() {
     const i = defaultInputs();
+
+    i.saveName = ($("saveName").value || "1");
     i.mode = $("mode").value;
 
     i.agent.level = num("agentLevel", 60);
@@ -201,12 +201,7 @@
     i.enemy.level = num("enemyLevel", 70);
     i.enemy.def = num("enemyDef", 0);
 
-    i.enemy.resAllPct = num("enemyResAllPct", 0);
-    i.enemy.resPhysicalPct = optNum("enemyResPhysicalPct");
-    i.enemy.resFirePct = optNum("enemyResFirePct");
-    i.enemy.resIcePct = optNum("enemyResIcePct");
-    i.enemy.resElectricPct = optNum("enemyResElectricPct");
-    i.enemy.resEtherPct = optNum("enemyResEtherPct");
+    i.enemy.resPct = num("enemyResAllPct", 0);
 
     i.enemy.defReductionPct = num("defReductionPct", 0);
     i.enemy.defIgnorePct = num("defIgnorePct", 0);
@@ -228,7 +223,7 @@
   }
 
   function applyModeVisibility(mode) {
-    const showAnom = (mode === "anomaly");
+    const showAnom = (mode === "anomaly" || mode === "hybrid");
     const showRupture = (mode === "rupture");
 
     $("anomalyHeader").classList.toggle("hidden", !showAnom);
@@ -242,15 +237,22 @@
   // Core formulas (preview output)
   // ===========================
   function getResPctForAttribute(enemy, attr) {
-    const map = {
+    // Backward-compatible helper: if legacy per-attribute RES exists, prefer it.
+    const legacyMap = {
       physical: enemy.resPhysicalPct,
       fire: enemy.resFirePct,
       ice: enemy.resIcePct,
       electric: enemy.resElectricPct,
       ether: enemy.resEtherPct,
     };
-    const specific = map[attr];
-    return (specific !== null && specific !== undefined) ? specific : enemy.resAllPct;
+    const legacySpecific = legacyMap[attr];
+    if (legacySpecific !== null && legacySpecific !== undefined) return legacySpecific;
+
+    // New single RES field
+    if (enemy.resPct !== null && enemy.resPct !== undefined) return enemy.resPct;
+
+    // Legacy single field
+    return enemy.resAllPct ?? 0;
   }
 
   function computeDefMult(i) {
@@ -534,13 +536,15 @@
         output: rup.expected,
       };
     }
-    // Fallback
+
+    // hybrid
     return {
-      mode: "standard",
+      mode: i.mode,
       output_noncrit: std.nonCrit,
       output_crit: std.crit,
-      output_expected: std.expected,
-      output: std.expected,
+      // Hybrid is still a simplistic "add standard hit + anomaly proc" view.
+      output_expected: std.expected + anom.combinedAvg,
+      output: std.expected + anom.combinedAvg,
     };
   }
 
@@ -601,10 +605,7 @@
     const rows = [];
     for (const m of statMeta()) {
       // Hide irrelevant stats by mode
-      if (i.mode === "anomaly" && (m.key === "dmgSkillTypePct")) continue;
-
-      // Anomalies generally can't crit. Only show CRIT rows if the special-case toggle is enabled.
-      if (i.mode === "anomaly" && !i.agent.anomaly.allowCrit && (m.key === "critRatePct" || m.key === "critDmgPct")) continue;
+      if (i.mode === "anomaly" && (m.key === "dmgSkillTypePct" || m.key === "critRatePct" || m.key === "critDmgPct")) continue;
 
       if (i.mode === "rupture") {
         // Rupture ignores all DEF-side factors and ATK/PEN. It still uses:
@@ -655,35 +656,20 @@
   // ===========================
   // Save/Load/Export/Import
   // ===========================
-
-  const SAVE_KEY = "zzz_calc_save_v1";
-
-  function getSavedBuild() {
-    // New format (single save)
+  function getAllSaves() {
     try {
-      const raw = localStorage.getItem(SAVE_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch {}
-
-    // Back-compat: old multi-slot saves (zzz_calc_saves)
-    try {
-      const legacy = JSON.parse(localStorage.getItem("zzz_calc_saves") || "{}");
-      if (legacy && typeof legacy === 'object') {
-        if (legacy["1"]) return legacy["1"];
-        const firstKey = Object.keys(legacy)[0];
-        if (firstKey) return legacy[firstKey];
-      }
-    } catch {}
-
-    return null;
+      return JSON.parse(localStorage.getItem("zzz_calc_saves") || "{}");
+    } catch {
+      return {};
+    }
   }
-
-  function setSavedBuild(data) {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  function setAllSaves(saves) {
+    localStorage.setItem("zzz_calc_saves", JSON.stringify(saves));
   }
 
   function applyImportedData(data) {
     // minimal: write values back to UI (keeping ids stable)
+    $("saveName").value = data.saveName ?? "1";
     $("mode").value = data.mode ?? "standard";
 
     $("agentLevel").value = data.agent?.level ?? 60;
@@ -723,13 +709,24 @@
     $("enemyLevel").value = data.enemy?.level ?? 70;
     $("enemyDef").value = data.enemy?.def ?? 0;
 
-    $("enemyResAllPct").value = data.enemy?.resAllPct ?? 0;
-    // Per-attribute RES fields (UI defaults to 0).
-    $("enemyResPhysicalPct").value = data.enemy?.resPhysicalPct ?? 0;
-    $("enemyResFirePct").value = data.enemy?.resFirePct ?? 0;
-    $("enemyResIcePct").value = data.enemy?.resIcePct ?? 0;
-    $("enemyResElectricPct").value = data.enemy?.resElectricPct ?? 0;
-    $("enemyResEtherPct").value = data.enemy?.resEtherPct ?? 0;
+    // Enemy RES (backward compatible):
+    // - New: enemy.resPct
+    // - Legacy: enemy.resAllPct
+    // - Legacy per-attribute RES: prefer the agent's attribute if present
+    const importedAttr = data.agent?.attribute ?? "physical";
+    const legacyResByAttr = {
+      physical: data.enemy?.resPhysicalPct,
+      fire: data.enemy?.resFirePct,
+      ice: data.enemy?.resIcePct,
+      electric: data.enemy?.resElectricPct,
+      ether: data.enemy?.resEtherPct,
+    };
+    const legacySpecific = legacyResByAttr[importedAttr];
+    const resVal =
+      (data.enemy?.resPct ?? null) ??
+      (legacySpecific ?? null) ??
+      (data.enemy?.resAllPct ?? 0);
+    $("enemyResAllPct").value = resVal;
 
     $("defReductionPct").value = data.enemy?.defReductionPct ?? 0;
     $("defIgnorePct").value = data.enemy?.defIgnorePct ?? 0;
@@ -749,19 +746,24 @@
 
   function saveBuild() {
     const data = readInputs();
-    setSavedBuild(data);
-    alert("Saved.");
+    const name = (data.saveName || "").trim() || "My Build";
+    const saves = getAllSaves();
+    saves[name] = data;
+    setAllSaves(saves);
+    alert(`Saved "${name}".`);
   }
 
   function loadBuild() {
-    const data = getSavedBuild();
+    const name = ($("saveName").value || "").trim() || "My Build";
+    const saves = getAllSaves();
+    const data = saves[name];
     if (!data) {
-      alert("No saved build found.");
+      alert(`No save found named "${name}".`);
       return;
     }
     applyImportedData(data);
     refresh();
-    alert("Loaded.");
+    alert(`Loaded "${name}".`);
   }
 
   function exportJSON() {
@@ -803,24 +805,25 @@
     applyModeVisibility(i.mode);
 
     const out = computePreviewOutput(i);
-    const anomOut = (i.mode === "anomaly") ? computeAnomalyOutput(i) : null;
+    const anomOut = (i.mode === "anomaly" || i.mode === "hybrid") ? computeAnomalyOutput(i) : null;
 
     const mode = i.mode;
     const labelPrefix =
       (mode === "standard") ? "Output" :
       (mode === "anomaly")  ? "Anomaly Output" :
-      "Rupture Output";
+      (mode === "rupture")  ? "Rupture Output" :
+      "Combined Output";
 
     const kpiItems = [
       { t:`DMG (AVG)`,    v: fmt0(out.output_expected) },
     ];
 
-    if (mode === "standard" || mode === "rupture") {
+    if (mode === "standard" || mode === "hybrid" || mode === "rupture") {
       kpiItems.push({ t:`DMG (Non-Crit)`, v: fmt0(out.output_noncrit) });
       kpiItems.push({ t:`DMG (Crit)`,     v: fmt0(out.output_crit) });
     }
 
-    if (mode === "anomaly") {
+    if (mode === "anomaly" || mode === "hybrid") {
       // Update anomaly info pills (if present in DOM)
       const kindPill = $("anomKindPill");
       const canCritPill = $("anomCanCritPill");
@@ -853,6 +856,35 @@
 
     const { rows } = computeMarginals(i);
 
+    const getBaseStatDisplay = (inputs, key) => {
+      switch (key) {
+        case "atkBase": return { value: inputs.agent.atkBase, kind: "flat" };
+
+        case "dmgGenericPct": return { value: inputs.agent.dmgBuckets.generic, kind: "pct" };
+        case "dmgAttrPct": return { value: inputs.agent.dmgBuckets.attribute, kind: "pct" };
+        case "dmgSkillTypePct": return { value: inputs.agent.dmgBuckets.skillType, kind: "pct" };
+
+        case "critRatePct": return { value: inputs.agent.crit.rate * 100, kind: "pct" };
+        case "critDmgPct": return { value: inputs.agent.crit.dmg * 100, kind: "pct" };
+
+        case "penRatioPct": return { value: inputs.agent.penRatioPct, kind: "pct" };
+        case "penFlat": return { value: inputs.agent.penFlat, kind: "flat" };
+
+        case "defReductionPct": return { value: inputs.enemy.defReductionPct, kind: "pct" };
+        case "defIgnorePct": return { value: inputs.enemy.defIgnorePct, kind: "pct" };
+
+        case "dmgTakenPct": return { value: inputs.enemy.dmgTakenPct, kind: "pct" };
+        case "stunPct": return { value: inputs.enemy.stunPct, kind: "pct" };
+
+        case "anomDmgPct": return { value: inputs.agent.anomaly.dmgPct, kind: "pct" };
+        case "disorderDmgPct": return { value: inputs.agent.anomaly.disorderPct, kind: "pct" };
+
+        case "sheerForce": return { value: inputs.agent.rupture.sheerForce, kind: "flat" };
+        case "sheerDmgBonusPct": return { value: inputs.agent.rupture.sheerDmgBonusPct, kind: "pct" };
+      }
+      return { value: 0, kind: "pct" };
+    };
+
     $("marginalBody").innerHTML = rows.map(r => {
       const kind = r.applied?.kind ?? "pct";
       const val = r.applied?.value ?? 0;
@@ -861,11 +893,15 @@
 
       const step = (kind === "flat") ? 1 : 0.1;
 
+      const baseStat = getBaseStatDisplay(i, r.key);
+      const baseText = (baseStat.kind === "flat") ? fmt0(baseStat.value) : fmt1(baseStat.value);
+
       return `
       <tr>
         <td>${r.label}</td>
         <td>
           <div style="display:flex; gap:8px; align-items:center;">
+            <span class="muted" title="Current value" style="min-width:64px; text-align:right;">${baseText}</span>
             <input
               class="appliedDelta"
               data-key="${r.key}"
