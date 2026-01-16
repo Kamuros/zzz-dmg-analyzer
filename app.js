@@ -701,10 +701,6 @@
       kpiItems.push({ t:`Disorder/Rot`,  v: fmt0(out.disorder_per_rotation ?? 0) });
     }
 
-    if (mode === "rupture") {
-      kpiItems.push({ t:`Rupture (AVG)`, v: fmt0(out.rupture ?? out.output_expected ?? 0) });
-    }
-
     $("kpi").innerHTML = kpiItems
       .map(x => `<div class="box"><div class="t">${x.t}</div><div class="v">${x.v}</div></div>`)
       .join("");
@@ -737,7 +733,7 @@
           </div>
         </td>
         <td>${fmt0(r.out2)}</td>
-        <td>${fmt1(r.gain)}</td>
+        <td>${fmt0(r.gain)}</td>
         <td>${fmt1(r.pctGain)}%</td>
       </tr>
     `;

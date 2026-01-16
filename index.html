@@ -58,20 +58,21 @@
       </div>
 
       <div class="form-row cols-3">
-        <label>Generic DMG% <input id="dmgGenericPct" type="number" value="0" step="0.1"/></label>
-        <label>Attribute DMG% <input id="dmgAttrPct" type="number" value="0" step="0.1"/></label>
-        <label>Skill DMG% (Basic/Special/Ult) <input id="dmgSkillTypePct" type="number" value="0" step="0.1"/></label>
+        <label>Generic DMG (%) <input id="dmgGenericPct" type="number" value="0" step="0.1"/></label>
+        <label>Attribute DMG (%) <input id="dmgAttrPct" type="number" value="0" step="0.1"/></label>
+        <label>Skill DMG (%) <input id="dmgSkillTypePct" type="number" value="0" step="0.1"/></label>
       </div>
 
       <div class="form-row cols-3">
         <label>PEN Ratio (%) <input id="penRatioPct" type="number" value="0" step="0.1"/></label>
         <label>PEN <input id="penFlat" type="number" value="0" step="1"/></label>
         <label>Skill Multiplier (%) <input id="skillMultPct" type="number" value="100" min="0" step="0.1"/></label>
+        <label>DEF Ignore (%) <input id="defIgnorePct" type="number" value="0" step="0.1"/></label>
       </div>
     </div>
   </div>
 
-  <h2 id="anomalyHeader">Anomaly</h2>
+  <h2 id="anomalyHeader">Agent Stats — Anomaly</h2>
   <div class="card" id="anomalyCard">
     <div class="form">
       <div class="form-row cols-2">
@@ -102,7 +103,7 @@
     </div>
   </div>
 
-  <h2 id="ruptureHeader">Rupture — Sheer Force / Sheer DMG Bonus</h2>
+  <h2 id="ruptureHeader">Agent Stats — Rupture</h2>
   <div class="card" id="ruptureCard">
     <div class="form">
       <div class="form-row cols-2">
@@ -134,7 +135,6 @@
 
       <div class="form-row cols-2">
         <label>DEF Reduction (%) <input id="defReductionPct" type="number" value="0" step="0.1"/></label>
-        <label>DEF Ignore (%) <input id="defIgnorePct" type="number" value="0" step="0.1"/></label>
       </div>
 
       <div class="form-row cols-3">
