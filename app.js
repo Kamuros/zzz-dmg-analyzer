@@ -149,6 +149,9 @@
         resElectricPct: null,
         resEtherPct: null,
 
+        resReductionPct: 0,
+        resIgnorePct: 0,
+
         defReductionPct: 0,
         defIgnorePct: 0,
 
@@ -262,6 +265,9 @@
     i.enemy.resElectricPct = optNum("enemyResElectricPct");
     i.enemy.resEtherPct = optNum("enemyResEtherPct");
 
+    i.enemy.resReductionPct = num("resReductionPct", 0);
+    i.enemy.resIgnorePct = num("resIgnorePct", 0);
+
     i.enemy.defReductionPct = num("defReductionPct", 0);
     i.enemy.defIgnorePct = num("defIgnorePct", 0);
 
@@ -314,10 +320,23 @@
     if (specific !== null && specific !== undefined && Number.isFinite(specific)) return all + specific;
     return all;
   }
+const LEVEL_FACTOR_TABLE = {
+    1: 50, 2: 54, 3: 58, 4: 62, 5: 66, 6: 71, 7: 76, 8: 82, 9: 88, 10: 94,
+    11: 100, 12: 107, 13: 114, 14: 121, 15: 129, 16: 137, 17: 145, 18: 153, 19: 162, 20: 172,
+    21: 181, 22: 191, 23: 201, 24: 211, 25: 222, 26: 233, 27: 245, 28: 256, 29: 268, 30: 281,
+    31: 293, 32: 306, 33: 319, 34: 333, 35: 347, 36: 361, 37: 375, 38: 390, 39: 405, 40: 421,
+    41: 436, 42: 452, 43: 469, 44: 485, 45: 502, 46: 519, 47: 537, 48: 555, 49: 573, 50: 592,
+    51: 610, 52: 629, 53: 649, 54: 669, 55: 689, 56: 709, 57: 730, 58: 751, 59: 772, 60: 794,
+  };
+
+  function levelFactor(level) {
+    const lv = Math.max(1, Math.floor(Number(level) || 1));
+    if (lv >= 60) return 794;
+    return LEVEL_FACTOR_TABLE[lv] ?? (lv + 100); // fallback for safety
+  }
 
   function computeDefMult(i) {
     const aLv = Math.max(1, i.agent.level);
-    const eLv = Math.max(1, i.enemy.level);
 
     let def = Math.max(0, i.enemy.def);
 
@@ -332,8 +351,8 @@
     const ratio = clamp(i.agent.penRatioPct / 100, 0, 0.95);
     def = def * (1 - ratio);
 
-    // Classic (aLv + 100) / (aLv + 100 + def)
-    const k = aLv + 100;
+    // ZZZ baseline: use Level Factor table instead of (level + 100) approximation
+    const k = levelFactor(aLv);
     const mult = k / (k + def);
     return mult;
   }
@@ -346,9 +365,16 @@
   }
 
   function computeResMult(i) {
-    const resPct = getResPctForAttribute(i.enemy, i.agent.attribute);
-    // Simple model: multiplier = 1 - RES (can go above 1 if negative)
-    return 1 - (resPct / 100);
+    // Base RES stacks: All-Attribute RES + Attribute-specific RES (if provided)
+    const baseResPct = getResPctForAttribute(i.enemy, i.agent.attribute);
+
+    // RES Reduction (target-side) and RES Ignore (attacker-side) are applied additively to the final RES term.
+    // Effective RES = Base RES - Reduction - Ignore
+    const effResPct = baseResPct - Number(i.enemy.resReductionPct || 0) - Number(i.enemy.resIgnorePct || 0);
+
+    // Multiplier = 1 - (Effective RES / 100)
+    // Negative Effective RES increases damage.
+    return 1 - (effResPct / 100);
   }
 
   function computeStandardOutput(i) {
@@ -446,7 +472,6 @@
     const dmgPctTotal =
       i.agent.dmgBuckets.generic +
       i.agent.dmgBuckets.attribute +
-      i.agent.dmgBuckets.skillType +
       i.agent.dmgBuckets.other +
       (i.enemy.isStunned ? i.agent.dmgBuckets.vsStunned : 0);
 
@@ -861,6 +886,9 @@
       const el = $("enemyResElectricPct"); if (el) el.value = data.enemy?.resElectricPct ?? "";
       const et = $("enemyResEtherPct"); if (et) et.value = data.enemy?.resEtherPct ?? "";
     }
+
+    const rr = $("resReductionPct"); if (rr) rr.value = data.enemy?.resReductionPct ?? 0;
+    const ri = $("resIgnorePct"); if (ri) ri.value = data.enemy?.resIgnorePct ?? 0;
 
     $("defReductionPct").value = data.enemy?.defReductionPct ?? 0;
     $("defIgnorePct").value = data.enemy?.defIgnorePct ?? 0;
