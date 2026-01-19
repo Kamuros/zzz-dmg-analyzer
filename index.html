@@ -49,7 +49,7 @@
             <option value="ether">Ether</option>
           </select>
         </label>
-        <label>Total ATK <input id="atkBase" type="number" value="2000" min="1" step="1"/></label>
+        <label>Total ATK <input id="atkBase" type="number" min="1" step="1"/></label>
       </div>
 
       <div class="form-row cols-2">
@@ -66,8 +66,9 @@
       <div class="form-row cols-3">
         <label>PEN Ratio (%) <input id="penRatioPct" type="number" value="0" step="0.1"/></label>
         <label>PEN <input id="penFlat" type="number" value="0" step="1"/></label>
-        <label>Skill Multiplier (%) <input id="skillMultPct" type="number" value="100" min="0" step="0.1"/></label>
+        <label>Skill Multiplier (%) <input id="skillMultPct" type="number" value="" min="0" step="0.1"/></label>
         <label>DEF Ignore (%) <input id="defIgnorePct" type="number" value="0" step="0.1"/></label>
+        <label>RES Ignore (%) <input id="resIgnorePct" type="number" value="0" step="0.1"/> </label>
       </div>
     </div>
   </div>
@@ -135,7 +136,7 @@
   <div class="card" id="ruptureCard">
     <div class="form">
       <div class="form-row cols-2">
-        <label>Sheer Force <input id="sheerForce" type="number" value="0" step="1"/></label>
+        <label>Sheer Force <input id="sheerForce" type="number" step="1"/></label>
         <label>Sheer DMG Bonus (%) <input id="sheerDmgBonusPct" type="number" value="0" step="0.1"/></label>
       </div>
     </div>
@@ -150,15 +151,11 @@
           <input id="anomAllowCrit" type="checkbox" />
         </label>
         <label>Anomaly Crit Rate (%)
-          <input id="anomCritRatePct" type="number" value="" min="0" max="100" step="0.1" placeholder="Blank = use Agent Crit Rate"/>
+          <input id="anomCritRatePct" type="number" value="" min="0" max="100" step="0.1" placeholder="For Jane"/>
         </label>
         <label>Anomaly Crit DMG (%)
-          <input id="anomCritDmgPct" type="number" value="" min="0" step="0.1" placeholder="Blank = use Agent Crit DMG"/>
+          <input id="anomCritDmgPct" type="number" value="" min="0" step="0.1" placeholder="For Jane"/>
         </label>
-      </div>
-
-      <div class="muted">
-        Used only when <b>Allow anomaly crit</b> is enabled. Leave the anomaly crit fields blank to reuse the agent crit stats.
       </div>
 
       <div class="hr" style="margin:12.5px 0;"></div>
@@ -175,9 +172,6 @@
         </label>
       </div>
 
-      <div class="muted">
-        These are rarely-used knobs. They do <b>not</b> replace the normal DMG/RES inputs — they stack with them.
-      </div>
     </div>
   </details>
 
@@ -191,20 +185,19 @@
       </div>
 
       <div class="form-row cols-3">
-        <label>Physical RES (%) <input id="enemyResPhysicalPct" type="number" value="" step="0.1" placeholder="Blank"/></label>
-        <label>Fire RES (%) <input id="enemyResFirePct" type="number" value="" step="0.1" placeholder="Blank"/></label>
-        <label>Ice RES (%) <input id="enemyResIcePct" type="number" value="" step="0.1" placeholder="Blank"/></label>
+        <label>Physical RES (%) <input id="enemyResPhysicalPct" type="number" value="0" step="0.1"/></label>
+        <label>Fire RES (%) <input id="enemyResFirePct" type="number" value="0" step="0.1"/></label>
+        <label>Ice RES (%) <input id="enemyResIcePct" type="number" value="0" step="0.1"></label>
       </div>
 
       <div class="form-row cols-2">
-        <label>Electric RES (%) <input id="enemyResElectricPct" type="number" value="" step="0.1" placeholder="Blank"/></label>
-        <label>Ether RES (%) <input id="enemyResEtherPct" type="number" value="" step="0.1" placeholder="Blank"/></label>
+        <label>Electric RES (%) <input id="enemyResElectricPct" type="number" value="0" step="0.1"/></label>
+        <label>Ether RES (%) <input id="enemyResEtherPct" type="number" value="0" step="0.1"/></label>
       </div>
 
       <div class="form-row cols-3">
         <label>DEF Reduction (%) <input id="defReductionPct" type="number" value="0" step="0.1"/></label>
         <label>RES Reduction (%) <input id="resReductionPct" type="number" value="0" step="0.1"/> </label>
-        <label>RES Ignore (%) <input id="resIgnorePct" type="number" value="0" step="0.1"/> </label>
       </div>
 
       <div class="form-row cols-3">
@@ -217,7 +210,7 @@
         </label>
         <label>
           Stunned Multiplier (%)
-          <input id="stunPct" type="number" value="100" step="1" />
+          <input id="stunPct" type="number" value="150" step="1" />
         </label>
       </div>
     </div>
@@ -235,7 +228,7 @@
           <th>Stat</th>
           <th>Original</th>
           <th>Applied</th>
-          <th>Total</th>
+          <th>Sum</th>
           <th>New Output</th>
           <th>DMG Gain</th>
           <th>DMG Gain (%)</th>

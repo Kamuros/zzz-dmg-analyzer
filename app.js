@@ -182,7 +182,7 @@
 
       { key: "dmgGenericPct", label: "Generic DMG" },
       { key: "dmgAttrPct", label: "Attribute DMG" },
-      { key: "dmgSkillTypePct", label: "Skill DMG (Basic/Special/Ult)" },
+      { key: "dmgSkillTypePct", label: "Skill DMG" },
 
       { key: "critRatePct", label: "Crit Rate" },
       { key: "critDmgPct", label: "Crit DMG" },
@@ -426,11 +426,11 @@ const LEVEL_FACTOR_TABLE = {
   };
 
   const ANOM_TYPE_FROM_ATTR = {
-    physical: "assault",
-    fire: "burn",
-    electric: "shock",
-    ice: "shatter",
-    ether: "corruption",
+    physical: "Assault",
+    fire: "Burn",
+    electric: "Shock",
+    ice: "Shatter",
+    ether: "Corruption",
   };
 
   function inferAnomType(i) {
@@ -984,7 +984,7 @@ const LEVEL_FACTOR_TABLE = {
       "Combined Output";
 
     const kpiItems = [
-      { t:`DMG (AVG)`,    v: fmt0(out.output_expected) },
+      { t:`Expected DMG`,    v: fmt0(out.output_expected) },
     ];
 
     if (mode === "standard" || mode === "hybrid" || mode === "rupture") {
