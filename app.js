@@ -1,9 +1,3 @@
-/* Zenless Zone Zero Analyzer
- * Refactor goals:
- * - Clear separation: model -> calculators -> renderer -> storage
- * - Safer rendering (no innerHTML with user-controlled content)
- * - Backward-compatible import/export (supports legacy keys)
- */
 (() => {
   "use strict";
 
@@ -122,19 +116,13 @@
       const el = this.dom.input(id);
       return !!el?.checked;
     }
-
-    // Prefer new ids; fall back to legacy ids where needed.
     readAtk() {
-      // New: atk, Legacy: atkBase
-      const atk = this.numById("atk", NaN);
-      if (Number.isFinite(atk)) return atk;
-      return this.numById("atkBase", 0);
+      return Math.max(0, this.numById("atk", 0));
     }
 
     /** @returns {Inputs} */
     read() {
-      const modeRaw = this.strById("mode", "standard");
-      const mode = (modeRaw === "hybrid") ? "anomaly" : modeRaw;
+      const mode = this.strById("mode", "standard");
 
       /** @type {Inputs} */
       const i = Inputs.defaults();
@@ -415,11 +403,11 @@
       let def = Math.max(0, Number(i.enemy.def) || 0);
 
       // DEF shred/ignore as additive % of enemy DEF
-      const defPctDown = MathUtil.clamp((Number(i.enemy.defReductionPct || 0) + Number(i.enemy.defIgnorePct || 0)) / 100, 0, 0.95);
+      const defPctDown = MathUtil.clamp((Number(i.enemy.defReductionPct || 0) + Number(i.enemy.defIgnorePct || 0)) / 100, 0, 1);
       def = def * (1 - defPctDown);
 
       // PEN Ratio first
-      const ratio = MathUtil.clamp((Number(i.agent.pen.ratioPct) || 0) / 100, 0, 0.95);
+      const ratio = MathUtil.clamp((Number(i.agent.pen.ratioPct) || 0) / 100, 0, 1);
       def = def * (1 - ratio);
 
       // Flat PEN last
@@ -813,7 +801,7 @@
   // Storage (safe-ish) + import/export
   // ===========================
   class StorageManager {
-    static SAVE_KEY = "zzz_calc_save_v2"; // bump version due to refactor keys
+    static SAVE_KEY = "zzz_calc_save_v3";
 
     /** @returns {any|null} */
     static getSaved() {
@@ -821,23 +809,6 @@
         const raw = localStorage.getItem(StorageManager.SAVE_KEY);
         if (raw) return JSON.parse(raw);
       } catch {}
-
-      // Back-compat: previous single-slot save
-      try {
-        const raw = localStorage.getItem("zzz_calc_save_v1");
-        if (raw) return JSON.parse(raw);
-      } catch {}
-
-      // Back-compat: old multi-slot saves
-      try {
-        const legacy = JSON.parse(localStorage.getItem("zzz_calc_saves") || "{}");
-        if (legacy && typeof legacy === "object") {
-          if (legacy["1"]) return legacy["1"];
-          const firstKey = Object.keys(legacy)[0];
-          if (firstKey) return legacy[firstKey];
-        }
-      } catch {}
-
       return null;
     }
 
@@ -1047,7 +1018,7 @@
       const jsonNameEl = this.dom.input("jsonName");
       if (jsonNameEl) jsonNameEl.value = String(data?.jsonName ?? "");
 
-      const mode = (data?.mode === "hybrid") ? "anomaly" : (data?.mode ?? "standard");
+      const mode = (data?.mode ?? "standard");
       const modeEl = this.dom.select("mode");
       if (modeEl) modeEl.value = mode;
 
@@ -1055,8 +1026,8 @@
       const agent = data?.agent ?? {};
       const crit = agent?.crit ?? {};
       const dmg = agent?.dmgBuckets ?? {};
-      const penRatioPct = agent?.penRatioPct ?? agent?.pen?.ratioPct ?? 0;
-      const penFlat = agent?.penFlat ?? agent?.pen?.flat ?? 0;
+      const penRatioPct = agent?.pen?.ratioPct ?? 0;
+      const penFlat = agent?.pen?.flat ?? 0;
 
       const agentLevel = this.dom.input("agentLevel");
       if (agentLevel) agentLevel.value = String(agent?.level ?? 60);
@@ -1066,10 +1037,8 @@
 
       // ATK (new id) with legacy fallback
       const atkEl = this.dom.input("atk");
-      const atkBaseEl = this.dom.input("atkBase");
-      const atkValue = (agent?.atk ?? agent?.atkBase ?? 0);
+      const atkValue = (agent?.atk ?? 0);
       if (atkEl) atkEl.value = String(atkValue);
-      if (atkBaseEl) atkBaseEl.value = String(atkValue);
 
       const crEl = this.dom.input("critRatePct");
       if (crEl) crEl.value = String((Number(crit?.rate ?? 0) * 100));
@@ -1116,11 +1085,11 @@
       this._set("enemyDef", enemy?.def ?? 0);
 
       this._set("enemyResAllPct", enemy?.resAllPct ?? 0);
-      this._setIfExists("enemyResPhysicalPct", enemy?.resPhysicalPct ?? enemy?.resByAttr?.physical ?? "");
-      this._setIfExists("enemyResFirePct", enemy?.resFirePct ?? enemy?.resByAttr?.fire ?? "");
-      this._setIfExists("enemyResIcePct", enemy?.resIcePct ?? enemy?.resByAttr?.ice ?? "");
-      this._setIfExists("enemyResElectricPct", enemy?.resElectricPct ?? enemy?.resByAttr?.electric ?? "");
-      this._setIfExists("enemyResEtherPct", enemy?.resEtherPct ?? enemy?.resByAttr?.ether ?? "");
+      this._setIfExists("enemyResPhysicalPct", enemy?.resByAttr?.physical ?? "");
+      this._setIfExists("enemyResFirePct", enemy?.resByAttr?.fire ?? "");
+      this._setIfExists("enemyResIcePct", enemy?.resByAttr?.ice ?? "");
+      this._setIfExists("enemyResElectricPct", enemy?.resByAttr?.electric ?? "");
+      this._setIfExists("enemyResEtherPct", enemy?.resByAttr?.ether ?? "");
 
       this._setIfExists("resReductionPct", enemy?.resReductionPct ?? 0);
       this._setIfExists("resIgnorePct", enemy?.resIgnorePct ?? 0);
@@ -1275,20 +1244,17 @@
     _exportData() {
       const i = this.parser.read();
 
-      // Convert internal schema to a JSON schema that preserves backward compatibility.
-      // - Keep agent.atkBase for older consumers
-      const data = {
+      // Clean, single-schema export (no legacy/back-compat fields)
+      return {
         jsonName: i.jsonName,
         mode: i.mode,
         agent: {
           level: i.agent.level,
           attribute: i.agent.attribute,
           atk: i.agent.atk,
-          atkBase: i.agent.atk, // legacy
           crit: { rate: i.agent.crit.rate, dmg: i.agent.crit.dmg },
           dmgBuckets: { ...i.agent.dmgBuckets },
-          penRatioPct: i.agent.pen.ratioPct,
-          penFlat: i.agent.pen.flat,
+          pen: { ratioPct: i.agent.pen.ratioPct, flat: i.agent.pen.flat },
           skillMultPct: i.agent.skillMultPct,
           anomaly: { ...i.agent.anomaly },
           rupture: { ...i.agent.rupture },
@@ -1298,12 +1264,6 @@
           def: i.enemy.def,
           resAllPct: i.enemy.resAllPct,
           resByAttr: { ...i.enemy.resByAttr },
-          // also export legacy keys for convenience
-          resPhysicalPct: i.enemy.resByAttr.physical,
-          resFirePct: i.enemy.resByAttr.fire,
-          resIcePct: i.enemy.resByAttr.ice,
-          resElectricPct: i.enemy.resByAttr.electric,
-          resEtherPct: i.enemy.resByAttr.ether,
           resReductionPct: i.enemy.resReductionPct,
           resIgnorePct: i.enemy.resIgnorePct,
           defReductionPct: i.enemy.defReductionPct,
@@ -1317,8 +1277,8 @@
           customApplied: MarginalAppliedStore.clone(),
         },
       };
-      return data;
     }
+
   }
 
   // Init
