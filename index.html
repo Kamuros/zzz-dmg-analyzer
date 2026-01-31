@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' blob:; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'self'" />
   <title>Zenless Zone Zero Analyzer</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -48,7 +49,7 @@
             <option value="ether">Ether</option>
           </select>
         </label>
-        <label>Total ATK <input id="atkBase" type="number" min="1" step="1"/></label>
+        <label>Total ATK <input id="atk" type="number" min="1" step="1"/></label>
       </div>
 
       <div class="form-row cols-2">
