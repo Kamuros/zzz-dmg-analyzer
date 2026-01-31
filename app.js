@@ -1,9 +1,10 @@
+/* Zenless Zone Zero Analyzer
+ * Refactor goals:
+ * - Clear separation: model -> calculators -> renderer -> storage
+ * - Safer rendering (no innerHTML with user-controlled content)
+ *  */
 (() => {
   "use strict";
-
-  // ===========================
-  // DOM helpers
-  // ===========================
   class Dom {
     /** @param {Document} doc */
     constructor(doc) {
@@ -43,10 +44,6 @@
       return el;
     }
   }
-
-  // ===========================
-  // Basic math utilities
-  // ===========================
   class MathUtil {
     static clamp(x, a, b) {
       const n = Number(x);
@@ -71,10 +68,6 @@
       return x.toFixed(1);
     }
   }
-
-  // ===========================
-  // Input parsing & validation
-  // ===========================
   class InputParser {
     /** @param {Dom} dom */
     constructor(dom) {
@@ -195,10 +188,6 @@
       return i;
     }
   }
-
-  // ===========================
-  // Types (JSDoc only)
-  // ===========================
   /**
    * @typedef {"physical"|"fire"|"ice"|"electric"|"ether"} Attribute
    */
@@ -301,10 +290,6 @@
       };
     }
   }
-
-  // ===========================
-  // Marginal applied delta store
-  // ===========================
   class MarginalAppliedStore {
     /** @type {Record<string, {kind:"pct"|"flat", value:number}>} */
     static _store = Object.create(null);
@@ -352,10 +337,6 @@
       return MarginalAppliedStore._store[key] ?? null;
     }
   }
-
-  // ===========================
-  // Damage math (core)
-  // ===========================
   class ZzzMath {
     static LEVEL_FACTOR_TABLE = {
       1: 50, 2: 54, 3: 58, 4: 62, 5: 66, 6: 71, 7: 76, 8: 82, 9: 88, 10: 94,
@@ -431,10 +412,6 @@
       return total;
     }
   }
-
-  // ===========================
-  // Standard / Anomaly / Rupture calculators
-  // ===========================
   class StandardCalculator {
     /** @param {Inputs} i */
     static compute(i) {
@@ -626,43 +603,43 @@
       return { mode: i.mode, output: std.expected, output_noncrit: std.nonCrit, output_crit: std.crit, output_expected: std.expected, anom: null };
     }
   }
-
-  // ===========================
-  // Stat meta & marginal analysis
-  // ===========================
   class StatMeta {
-    static list() {
-      return [
-        { key: "atk", label: "Total ATK", kind: "flat" },
+    static _LIST = [
+      { key: "atk", label: "Total ATK", kind: "flat" },
 
-        { key: "dmgGenericPct", label: "Generic DMG", kind: "pct" },
-        { key: "dmgAttrPct", label: "Attribute DMG", kind: "pct" },
-        { key: "dmgSkillTypePct", label: "Skill DMG", kind: "pct" },
+      { key: "dmgGenericPct", label: "Generic DMG", kind: "pct" },
+      { key: "dmgAttrPct", label: "Attribute DMG", kind: "pct" },
+      { key: "dmgSkillTypePct", label: "Skill DMG", kind: "pct" },
 
-        { key: "critRatePct", label: "Crit Rate", kind: "pct" },
-        { key: "critDmgPct", label: "Crit DMG", kind: "pct" },
+      { key: "critRatePct", label: "Crit Rate", kind: "pct" },
+      { key: "critDmgPct", label: "Crit DMG", kind: "pct" },
 
-        { key: "penRatioPct", label: "PEN Ratio", kind: "pct" },
-        { key: "penFlat", label: "PEN", kind: "flat" },
+      { key: "penRatioPct", label: "PEN Ratio", kind: "pct" },
+      { key: "penFlat", label: "PEN", kind: "flat" },
 
-        { key: "defReductionPct", label: "DEF Reduction", kind: "pct" },
-        { key: "defIgnorePct", label: "DEF Ignore", kind: "pct" },
+      { key: "defReductionPct", label: "DEF Reduction", kind: "pct" },
+      { key: "defIgnorePct", label: "DEF Ignore", kind: "pct" },
 
-        { key: "dmgTakenPct", label: "DMG Taken", kind: "pct" },
-        { key: "stunPct", label: "Stunned Multiplier", kind: "pct" },
+      { key: "dmgTakenPct", label: "DMG Taken", kind: "pct" },
+      { key: "stunPct", label: "Stunned Multiplier", kind: "pct" },
 
-        { key: "anomDmgPct", label: "Anomaly DMG", kind: "pct" },
-        { key: "disorderDmgPct", label: "Disorder DMG", kind: "pct" },
+      { key: "anomDmgPct", label: "Anomaly DMG", kind: "pct" },
+      { key: "disorderDmgPct", label: "Disorder DMG", kind: "pct" },
 
-        { key: "sheerForce", label: "Sheer Force", kind: "flat" },
-        { key: "sheerDmgBonusPct", label: "Sheer DMG Bonus", kind: "pct" },
-      ];
-    }
+      { key: "sheerForce", label: "Sheer Force", kind: "flat" },
+      { key: "sheerDmgBonusPct", label: "Sheer DMG Bonus", kind: "pct" },
+    ];
+
+    static _MAP = (() => {
+      const m = new Map();
+      for (const x of StatMeta._LIST) m.set(x.key, x);
+      return m;
+    })();
+
+    static list() { return StatMeta._LIST; }
 
     /** @param {string} key */
-    static byKey(key) {
-      return StatMeta.list().find(x => x.key === key) ?? null;
-    }
+    static byKey(key) { return StatMeta._MAP.get(key) ?? null; }
   }
 
   class MarginalAnalyzer {
@@ -707,42 +684,111 @@
       return { kind: "pct", value: MarginalAnalyzer.DEFAULT_DELTA.pct };
     }
 
-    /** @param {Inputs} i @param {string} key @param {{kind:"pct"|"flat",value:number}|null} override */
-    static applyDelta(i, key, override) {
-      /** @type {Inputs} */
-      const j = (typeof structuredClone === "function") ? structuredClone(i) : JSON.parse(JSON.stringify(i));
+    /** @param {string} key @param {{kind:"pct"|"flat",value:number}|null} override */
+    static resolveDelta(key, override) {
+      const expectsFlat = (key === "atk" || key === "penFlat" || key === "sheerForce");
+      if (override && Number.isFinite(override.value)) {
+        if (expectsFlat && override.kind === "flat") return override;
+        if (!expectsFlat && override.kind === "pct") return override;
+      }
+      return MarginalAnalyzer.defaultApplied(key);
+    }
 
-      const d = (override && Number.isFinite(override.value)) ? override : MarginalAnalyzer.defaultApplied(key);
-      const dp = (d.kind === "pct") ? d.value : MarginalAnalyzer.DEFAULT_DELTA.pct;
-      const df = (d.kind === "flat") ? d.value : MarginalAnalyzer.DEFAULT_DELTA.penFlat;
+    /** @param {Inputs} i @param {string} key @param {{kind:"pct"|"flat",value:number}} d */
+    static applyDeltaInPlace(i, key, d) {
+      const dp = (d.kind === "pct") ? d.value : 0;
+      const df = (d.kind === "flat") ? d.value : 0;
 
       switch (key) {
-        case "atk": j.agent.atk += df; break;
+        case "atk": {
+          const prev = i.agent.atk;
+          i.agent.atk = prev + df;
+          return () => { i.agent.atk = prev; };
+        }
 
-        case "dmgGenericPct": j.agent.dmgBuckets.generic += dp; break;
-        case "dmgAttrPct": j.agent.dmgBuckets.attribute += dp; break;
-        case "dmgSkillTypePct": j.agent.dmgBuckets.skillType += dp; break;
+        case "dmgGenericPct": {
+          const prev = i.agent.dmgBuckets.generic;
+          i.agent.dmgBuckets.generic = prev + dp;
+          return () => { i.agent.dmgBuckets.generic = prev; };
+        }
+        case "dmgAttrPct": {
+          const prev = i.agent.dmgBuckets.attribute;
+          i.agent.dmgBuckets.attribute = prev + dp;
+          return () => { i.agent.dmgBuckets.attribute = prev; };
+        }
+        case "dmgSkillTypePct": {
+          const prev = i.agent.dmgBuckets.skillType;
+          i.agent.dmgBuckets.skillType = prev + dp;
+          return () => { i.agent.dmgBuckets.skillType = prev; };
+        }
 
-        case "critRatePct": j.agent.crit.rate = MathUtil.clamp(j.agent.crit.rate + (dp / 100), 0, 1); break;
-        case "critDmgPct": j.agent.crit.dmg += (dp / 100); break;
+        case "critRatePct": {
+          const prev = i.agent.crit.rate;
+          i.agent.crit.rate = MathUtil.clamp(prev + (dp / 100), 0, 1);
+          return () => { i.agent.crit.rate = prev; };
+        }
+        case "critDmgPct": {
+          const prev = i.agent.crit.dmg;
+          i.agent.crit.dmg = prev + (dp / 100);
+          return () => { i.agent.crit.dmg = prev; };
+        }
 
-        case "penRatioPct": j.agent.pen.ratioPct += dp; break;
-        case "penFlat": j.agent.pen.flat += df; break;
+        case "penRatioPct": {
+          const prev = i.agent.pen.ratioPct;
+          i.agent.pen.ratioPct = prev + dp;
+          return () => { i.agent.pen.ratioPct = prev; };
+        }
+        case "penFlat": {
+          const prev = i.agent.pen.flat;
+          i.agent.pen.flat = prev + df;
+          return () => { i.agent.pen.flat = prev; };
+        }
 
-        case "dmgTakenPct": j.enemy.dmgTakenPct += dp; break;
-        case "stunPct": j.enemy.stunPct += dp; break;
+        case "dmgTakenPct": {
+          const prev = i.enemy.dmgTakenPct;
+          i.enemy.dmgTakenPct = prev + dp;
+          return () => { i.enemy.dmgTakenPct = prev; };
+        }
+        case "stunPct": {
+          const prev = i.enemy.stunPct;
+          i.enemy.stunPct = prev + dp;
+          return () => { i.enemy.stunPct = prev; };
+        }
 
-        case "defReductionPct": j.enemy.defReductionPct += dp; break;
-        case "defIgnorePct": j.enemy.defIgnorePct += dp; break;
+        case "defReductionPct": {
+          const prev = i.enemy.defReductionPct;
+          i.enemy.defReductionPct = prev + dp;
+          return () => { i.enemy.defReductionPct = prev; };
+        }
+        case "defIgnorePct": {
+          const prev = i.enemy.defIgnorePct;
+          i.enemy.defIgnorePct = prev + dp;
+          return () => { i.enemy.defIgnorePct = prev; };
+        }
 
-        case "anomDmgPct": j.agent.anomaly.dmgPct += dp; break;
-        case "disorderDmgPct": j.agent.anomaly.disorderPct += dp; break;
+        case "anomDmgPct": {
+          const prev = i.agent.anomaly.dmgPct;
+          i.agent.anomaly.dmgPct = prev + dp;
+          return () => { i.agent.anomaly.dmgPct = prev; };
+        }
+        case "disorderDmgPct": {
+          const prev = i.agent.anomaly.disorderPct;
+          i.agent.anomaly.disorderPct = prev + dp;
+          return () => { i.agent.anomaly.disorderPct = prev; };
+        }
 
-        case "sheerForce": j.agent.rupture.sheerForce += df; break;
-        case "sheerDmgBonusPct": j.agent.rupture.sheerDmgBonusPct += dp; break;
+        case "sheerForce": {
+          const prev = i.agent.rupture.sheerForce;
+          i.agent.rupture.sheerForce = prev + df;
+          return () => { i.agent.rupture.sheerForce = prev; };
+        }
+        case "sheerDmgBonusPct": {
+          const prev = i.agent.rupture.sheerDmgBonusPct;
+          i.agent.rupture.sheerDmgBonusPct = prev + dp;
+          return () => { i.agent.rupture.sheerDmgBonusPct = prev; };
+        }
       }
-
-      return { j, applied: d };
+      return () => {};
     }
 
     /** @param {Inputs} i */
@@ -750,19 +796,17 @@
       const base = Preview.compute(i);
       const baseOut = base.output;
 
-      /** @type {Array<any>} */
       const rows = [];
+      const ruptureAllowed = new Set([
+        "dmgGenericPct","dmgAttrPct","dmgSkillTypePct","critRatePct","critDmgPct",
+        "dmgTakenPct","stunPct","sheerForce","sheerDmgBonusPct"
+      ]);
 
       for (const m of StatMeta.list()) {
-        // Mode relevance filters
         if (i.mode === "anomaly" && (m.key === "dmgSkillTypePct" || m.key === "critRatePct" || m.key === "critDmgPct")) continue;
 
         if (i.mode === "rupture") {
-          const allowed = new Set([
-            "dmgGenericPct","dmgAttrPct","dmgSkillTypePct","critRatePct","critDmgPct",
-            "dmgTakenPct","stunPct","sheerForce","sheerDmgBonusPct"
-          ]);
-          if (!allowed.has(m.key)) continue;
+          if (!ruptureAllowed.has(m.key)) continue;
         } else {
           if (m.key === "sheerForce" || m.key === "sheerDmgBonusPct") continue;
         }
@@ -770,8 +814,12 @@
         if (i.mode === "standard" && (m.key === "anomDmgPct" || m.key === "disorderDmgPct")) continue;
 
         const override = MarginalAppliedStore.get(m.key);
-        const { j, applied } = MarginalAnalyzer.applyDelta(i, m.key, override);
-        const out2 = Preview.compute(j).output;
+        const applied = MarginalAnalyzer.resolveDelta(m.key, override);
+
+        const revert = MarginalAnalyzer.applyDeltaInPlace(i, m.key, applied);
+        const out2 = Preview.compute(i).output;
+        revert();
+
         const gain = out2 - baseOut;
         const pctGain = baseOut !== 0 ? (gain / baseOut) * 100 : 0;
 
@@ -797,9 +845,6 @@
     }
   }
 
-  // ===========================
-  // Storage (safe-ish) + import/export
-  // ===========================
   class StorageManager {
     static SAVE_KEY = "zzz_calc_save_v3";
 
@@ -863,10 +908,6 @@
       URL.revokeObjectURL(url);
     }
   }
-
-  // ===========================
-  // Rendering (no innerHTML)
-  // ===========================
   class Renderer {
     /** @param {Dom} dom */
     constructor(dom) {
@@ -999,10 +1040,6 @@
       return wrap;
     }
   }
-
-  // ===========================
-  // Import application to UI
-  // ===========================
   class UiApplier {
     /** @param {Dom} dom */
     constructor(dom) {
@@ -1117,10 +1154,6 @@
       /** @type {any} */ (el).value = String(value);
     }
   }
-
-  // ===========================
-  // App Controller
-  // ===========================
   class App {
     constructor() {
       this.dom = new Dom(document);
@@ -1128,8 +1161,23 @@
       this.renderer = new Renderer(this.dom);
       this.applier = new UiApplier(this.dom);
 
+      // Debounced refresh: coalesce multiple input events into one paint-frame.
+      this._refreshPending = false;
+
       this._wireEvents();
       this.refresh();
+    }
+
+    requestRefresh() {
+      if (this._refreshPending) return;
+      this._refreshPending = true;
+      const raf = (typeof requestAnimationFrame === "function")
+        ? requestAnimationFrame
+        : (cb) => setTimeout(cb, 16);
+      raf(() => {
+        this._refreshPending = false;
+        this.refresh();
+      });
     }
 
     refresh() {
@@ -1168,7 +1216,7 @@
         const data = this._exportData();
         StorageManager.setSaved(data);
         alert("Saved.");
-        this.refresh();
+        this.requestRefresh();
       });
 
       this.dom.btn("btnLoad")?.addEventListener("click", () => {
@@ -1176,7 +1224,7 @@
         if (!data) { alert("No saved build found."); return; }
         this.applier.applyImportedData(data);
         alert("Loaded.");
-        this.refresh();
+        this.requestRefresh();
       });
 
       this.dom.btn("btnExport")?.addEventListener("click", () => {
@@ -1201,8 +1249,8 @@
             (data) => {
               this.applier.applyImportedData(data);
               alert("Imported.");
-              this.refresh();
-            },
+              this.requestRefresh();
+},
             (msg) => alert(msg)
           );
         }
@@ -1211,16 +1259,16 @@
 
       this.dom.btn("btnReset")?.addEventListener("click", () => {
         this.applier.applyImportedData(Inputs.defaults());
-        this.refresh();
+        this.requestRefresh();
       });
 
-      // Main inputs
-      this.dom.qsa("input:not(.appliedDelta), select").forEach(el => {
-        el.addEventListener("input", () => this.refresh());
-        el.addEventListener("change", () => this.refresh());
+      this.dom.qsa("input:not(.appliedDelta)").forEach(el => {
+        el.addEventListener("input", () => this.requestRefresh());
+      });
+      this.dom.qsa("select").forEach(el => {
+        el.addEventListener("change", () => this.requestRefresh());
       });
 
-      // Editable Applied deltas in marginal table
       this.dom.byId("marginalBody")?.addEventListener("change", (e) => {
         const t = /** @type {HTMLElement} */ (e.target);
         if (!(t instanceof HTMLInputElement)) return;
@@ -1237,7 +1285,7 @@
         } else {
           MarginalAppliedStore.set(key, kind, v);
         }
-        this.refresh();
+        this.requestRefresh();
       });
     }
 
