@@ -137,7 +137,7 @@
    </div>
   </div>
   <h2 id="anomalyHeader">
-   Agent Stats — Anomaly
+   Agent Stats: Anomaly
   </h2>
   <div class="card" id="anomalyCard">
    <div class="form">
@@ -182,11 +182,11 @@
     </div>
     <div class="form-row cols-3">
      <label>
-      Tick Count (override)
+      Tick Count (Override)
       <input id="anomTickCount" min="1" placeholder="Auto" step="1" type="number" value=""/>
      </label>
      <label>
-      Tick Interval (sec, override)
+      Tick Interval (Sec, Override)
       <input id="anomTickIntervalSec" min="0" placeholder="Auto" step="0.05" type="number" value=""/>
      </label>
     </div>
@@ -195,7 +195,7 @@
       Disorder: Previous Anomaly
       <select id="disorderPrevType">
        <option selected="" value="auto">
-        Auto (use current Anomaly Type)
+        Auto (Current Anomaly Type)
        </option>
        <option value="burn">
         Burn
@@ -215,17 +215,14 @@
       </select>
      </label>
      <label>
-      Disorder: Time Passed (sec)
+      Disorder: Time Passed (Sec)
       <input id="disorderTimePassedSec" min="0" step="0.1" type="number" value="0"/>
-     </label>
-     <label class="muted align-end">
-      Disorder uses the previous anomaly + time passed.
      </label>
     </div>
    </div>
   </div>
   <h2 id="ruptureHeader">
-   Agent Stats — Rupture
+   Agent Stats: Rupture
   </h2>
   <div class="card" id="ruptureCard">
    <div class="form">
@@ -235,7 +232,7 @@
       <input id="sheerForce" step="1" type="number"/>
      </label>
      <label>
-      Sheer DMG Bonus (%)
+      Sheer DMG (%)
       <input id="sheerDmgBonusPct" step="0.1" type="number" value="0"/>
      </label>
     </div>
@@ -249,17 +246,17 @@
     <div class="form-row cols-3">
      <label class="label-inline">
       <span>
-       Allow anomaly crit (special cases)
+       Allow Anomaly Crit
       </span>
       <input id="anomAllowCrit" type="checkbox"/>
      </label>
      <label>
       Anomaly Crit Rate (%)
-      <input id="anomCritRatePct" max="100" min="0" placeholder="For Jane" step="0.1" type="number" value=""/>
+      <input id="anomCritRatePct" max="100" min="0" step="0.1" type="number" value=""/>
      </label>
      <label>
       Anomaly Crit DMG (%)
-      <input id="anomCritDmgPct" min="0" placeholder="For Jane" step="0.1" type="number" value=""/>
+      <input id="anomCritDmgPct" min="0" step="0.1" type="number" value=""/>
      </label>
     </div>
     <div class="hr tight">
@@ -291,7 +288,7 @@
       <input id="enemyDef" min="0" step="1" type="number" value="953"/>
      </label>
      <label>
-      Attribute RES (%)
+      All-Attribute RES (%)
       <input id="enemyResAllPct" step="0.1" type="number" value="0"/>
      </label>
     </div>
