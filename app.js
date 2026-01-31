@@ -1186,12 +1186,14 @@
       kpiItems.push({ t: "DMG (Crit)", v: MathUtil.fmt0(preview.output_crit) });
 
       if (preview.anom) {
-        kpiItems.push({ t: "Anomaly Type", v: String(preview.anom.anomType) });
+                const anomLabel = (AnomalyCalculator.ANOM_META?.[preview.anom.anomType]?.label)
+          ?? String(preview.anom.anomType || "").replace(/^./, (c) => c.toUpperCase());
+        kpiItems.push({ t: "Anomaly Type", v: anomLabel });
         if (preview.anom.kind === "dot") {
           kpiItems.push({ t: "Expected Tick DMG", v: MathUtil.fmt0(preview.anom.anomalyPerTick.avg) });
           kpiItems.push({ t: "Ticks / Proc", v: MathUtil.fmt0(preview.anom.tickCount) });
-          kpiItems.push({ t: "Tick Interval (Sec)", v: MathUtil.fmt1(preview.anom.tickIntervalSec) });
-          kpiItems.push({ t: "DoT Duration (Sec)", v: MathUtil.fmt1(preview.anom.durationSec) });
+          kpiItems.push({ t: "Tick Interval (Sec)", v: MathUtil.fmtSmart(preview.anom.tickIntervalSec) });
+          kpiItems.push({ t: "DoT Duration (Sec)", v: MathUtil.fmtSmart(preview.anom.durationSec) });
           kpiItems.push({ t: "Anomaly Total / Proc", v: MathUtil.fmt0(preview.anom.anomalyPerProc.avg) });
         } else {
           kpiItems.push({ t: "Anomaly Hit", v: MathUtil.fmt0(preview.anom.anomalyPerProc.avg) });
