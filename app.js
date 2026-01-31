@@ -1188,15 +1188,15 @@
       if (preview.anom) {
         kpiItems.push({ t: "Anomaly Type", v: String(preview.anom.anomType) });
         if (preview.anom.kind === "dot") {
-          kpiItems.push({ t: "Tick DMG (AVG)", v: MathUtil.fmt0(preview.anom.anomalyPerTick.avg) });
+          kpiItems.push({ t: "Expected Tick DMG", v: MathUtil.fmt0(preview.anom.anomalyPerTick.avg) });
           kpiItems.push({ t: "Ticks / Proc", v: MathUtil.fmt0(preview.anom.tickCount) });
-          kpiItems.push({ t: "Tick Interval (s)", v: MathUtil.fmt1(preview.anom.tickIntervalSec) });
-          kpiItems.push({ t: "DoT Duration (s)", v: MathUtil.fmt1(preview.anom.durationSec) });
+          kpiItems.push({ t: "Tick Interval (Sec)", v: MathUtil.fmt1(preview.anom.tickIntervalSec) });
+          kpiItems.push({ t: "DoT Duration (Sec)", v: MathUtil.fmt1(preview.anom.durationSec) });
           kpiItems.push({ t: "Anomaly Total / Proc", v: MathUtil.fmt0(preview.anom.anomalyPerProc.avg) });
         } else {
-          kpiItems.push({ t: "Anomaly Hit (AVG)", v: MathUtil.fmt0(preview.anom.anomalyPerProc.avg) });
+          kpiItems.push({ t: "Anomaly Hit", v: MathUtil.fmt0(preview.anom.anomalyPerProc.avg) });
         }
-        kpiItems.push({ t: "Disorder Hit (AVG)", v: MathUtil.fmt0(preview.anom.disorder.avg) });
+        kpiItems.push({ t: "Disorder Hit", v: MathUtil.fmt0(preview.anom.disorder.avg) });
       }
 
       this.renderer.renderKpi(kpiItems);
