@@ -1,8 +1,3 @@
-/* Zenless Zone Zero Analyzer
- * Refactor goals:
- * - Clear separation: model -> calculators -> renderer -> storage
- * - Safer rendering (no innerHTML with user-controlled content)
- *  */
 (() => {
   "use strict";
   class Dom {
@@ -448,7 +443,7 @@
 
     static ANOM_FROM_ATTR = {
       physical: "assault",
-      fire: "burn",         // fixed typo
+      fire: "burn",
       electric: "shock",
       ice: "shatter",
       ether: "corruption",

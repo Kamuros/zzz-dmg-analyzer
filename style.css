@@ -140,3 +140,18 @@ details[open].card > summary.summary::after {
 
 .mt-10 { margin-top: 10px; }
 .mt-15 { margin-top: 15px; }
+
+/* Utility helpers (keep HTML free of inline styles) */
+.align-end { align-self: end; }
+.mt-20 { margin-top: 20px; }
+.mt-12_5 { margin-top: 12.5px; }
+
+.label-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.label-inline > span { flex: 1; }
+
+.hr.tight { margin: 12.5px 0; }
