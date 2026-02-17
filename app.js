@@ -63,6 +63,12 @@
       return x.toFixed(1);
     }
   }
+
+  class AppConfig {
+    // Keep Disorder logic for future, but hide from UI for now.
+    static SHOW_DISORDER_UI = false;
+  }
+
   class InputParser {
     /** @param {Dom} dom */
     constructor(dom) {
@@ -588,7 +594,8 @@
         return { mode: i.mode, output: std.expected, output_noncrit: std.nonCrit, output_crit: std.crit, output_expected: std.expected, anom: null };
       }
       if (i.mode === "anomaly") {
-        const combined = std.expected + anom.combinedAvg;
+        const disorderPart = AppConfig.SHOW_DISORDER_UI ? (anom.disorder?.avg ?? 0) : 0;
+        const combined = std.expected + (anom.anomalyPerProc?.avg ?? 0) + disorderPart;
         return { mode: i.mode, output: combined, output_noncrit: std.nonCrit, output_crit: std.crit, output_expected: combined, anom };
       }
       if (i.mode === "rupture") {
@@ -618,6 +625,8 @@
       { key: "dmgTakenPct", label: "DMG Taken", kind: "pct" },
       { key: "stunPct", label: "Stunned Multiplier", kind: "pct" },
 
+      { key: "anomProf", label: "Anomaly Proficiency", kind: "flat" },
+
       { key: "anomDmgPct", label: "Anomaly DMG", kind: "pct" },
       { key: "disorderDmgPct", label: "Disorder DMG", kind: "pct" },
 
@@ -638,7 +647,7 @@
   }
 
   class MarginalAnalyzer {
-    static DEFAULT_DELTA = { pct: 0, atk: 0, penFlat: 0, sheerForce: 0 };
+    static DEFAULT_DELTA = { pct: 0, atk: 0, penFlat: 0, sheerForce: 0, anomProf: 0 };
 
     /** @param {Inputs} i @param {string} key */
     static originalDisplay(i, key) {
@@ -661,6 +670,8 @@
         case "dmgTakenPct": return { kind: "pct", value: i.enemy.dmgTakenPct };
         case "stunPct": return { kind: "pct", value: i.enemy.stunPct };
 
+        case "anomProf": return { kind: "flat", value: i.agent.anomaly.prof };
+
         case "anomDmgPct": return { kind: "pct", value: i.agent.anomaly.dmgPct };
         case "disorderDmgPct": return { kind: "pct", value: i.agent.anomaly.disorderPct };
 
@@ -676,12 +687,13 @@
       if (key === "atk") return { kind: "flat", value: MarginalAnalyzer.DEFAULT_DELTA.atk };
       if (key === "penFlat") return { kind: "flat", value: MarginalAnalyzer.DEFAULT_DELTA.penFlat };
       if (key === "sheerForce") return { kind: "flat", value: MarginalAnalyzer.DEFAULT_DELTA.sheerForce };
+      if (key === "anomProf") return { kind: "flat", value: MarginalAnalyzer.DEFAULT_DELTA.anomProf };
       return { kind: "pct", value: MarginalAnalyzer.DEFAULT_DELTA.pct };
     }
 
     /** @param {string} key @param {{kind:"pct"|"flat",value:number}|null} override */
     static resolveDelta(key, override) {
-      const expectsFlat = (key === "atk" || key === "penFlat" || key === "sheerForce");
+      const expectsFlat = (key === "atk" || key === "penFlat" || key === "sheerForce" || key === "anomProf");
       if (override && Number.isFinite(override.value)) {
         if (expectsFlat && override.kind === "flat") return override;
         if (!expectsFlat && override.kind === "pct") return override;
@@ -761,6 +773,12 @@
           return () => { i.enemy.defIgnorePct = prev; };
         }
 
+        case "anomProf": {
+          const prev = i.agent.anomaly.prof;
+          i.agent.anomaly.prof = Math.max(0, prev + df);
+          return () => { i.agent.anomaly.prof = prev; };
+        }
+
         case "anomDmgPct": {
           const prev = i.agent.anomaly.dmgPct;
           i.agent.anomaly.dmgPct = prev + dp;
@@ -799,6 +817,8 @@
 
       for (const m of StatMeta.list()) {
         if (i.mode === "anomaly" && (m.key === "dmgSkillTypePct" || m.key === "critRatePct" || m.key === "critDmgPct")) continue;
+        if (i.mode !== "anomaly" && (m.key === "anomProf" || m.key === "anomDmgPct" || m.key === "disorderDmgPct")) continue;
+        if (!AppConfig.SHOW_DISORDER_UI && (m.key === "disorderDmgPct")) continue;
 
         if (i.mode === "rupture") {
           if (!ruptureAllowed.has(m.key)) continue;
@@ -1198,7 +1218,9 @@
         } else {
           kpiItems.push({ t: "Anomaly Hit", v: MathUtil.fmt0(preview.anom.anomalyPerProc.avg) });
         }
-        kpiItems.push({ t: "Disorder Hit", v: MathUtil.fmt0(preview.anom.disorder.avg) });
+        if (AppConfig.SHOW_DISORDER_UI) {
+          kpiItems.push({ t: "Disorder Hit", v: MathUtil.fmt0(preview.anom.disorder.avg) });
+        }
       }
 
       this.renderer.renderKpi(kpiItems);
