@@ -152,3 +152,16 @@ instance/
 Thumbs.db
 .vscode/
 .idea/
+
+# Node
+node_modules/
+
+# Coverage reports
+coverage/
+
+# Playwright test results
+playwright-report/
+test-results/
+
+# Logs
+npm-debug.log*
