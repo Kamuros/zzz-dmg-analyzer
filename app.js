@@ -1024,8 +1024,12 @@ case "disorderDmgPct": {
       if (!this.marginalBody) return;
       this.dom.clear(this.marginalBody);
 
-      for (const r of marginal.rows) {
+      for (let idx = 0; idx < marginal.rows.length; idx++) {
+        const r = marginal.rows[idx];
         const tr = this.dom.el("tr");
+        
+        if (idx === 0) tr.classList.add("best-row");
+        else if (idx < 3) tr.classList.add("top-row");
 
         const tdLabel = this.dom.el("td");
         tdLabel.textContent = r.label;
