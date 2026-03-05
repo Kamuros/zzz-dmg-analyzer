@@ -26,6 +26,7 @@ h2 { margin: 20px 0 10px; font-size: 20px; }
   border-radius: 15px;
   padding: 15px;
   background: #fff;
+  box-shadow: 0 2.5px 5px rgba(0,0,0,0.05);
 }
 
 /* ============================
@@ -87,13 +88,28 @@ input,
 select {
   padding: 10px;
   border: 1px solid #cfcfcf;
-  border-radius: 12.5px;
+  border-radius: 15px;
   font-size: 14px;
+  background: #fafafa;
 }
 
 input[type="checkbox"] {
   width: 20px;
   height: 20px;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: #8fb4ff;
+  box-shadow: 0 0 0 2.5px rgba(140,180,255,0.25);
+}
+
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23666'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 7.5px center;
 }
 
 .label-inline {
@@ -109,14 +125,16 @@ input[type="checkbox"] {
 
 .btn {
   padding: 10px 12.5px;
-  border-radius: 12.5px;
+  border-radius: 15px;
   border: 1px solid #cfcfcf;
   background: #f7f7f7;
   cursor: pointer;
   font-size: 14px;
 }
 
-.btn.primary { background: #eef5ff; border-color: #b9d3ff; }
+.btn:hover {
+  background: #ededed;
+}
 .btn:active { transform: translateY(1px); }
 
 /* ============================
@@ -154,7 +172,7 @@ th {
 }
 .kpi .box {
   border:1px solid #eee;
-  border-radius: 12.5px;
+  border-radius: 15px;
   padding:10px 12.5px;
   background:#fcfcfc;
   min-width: 240px;
@@ -203,29 +221,15 @@ details.card > summary.summary::-webkit-details-marker {
 details.card > summary.summary::after {
   content: "▸";
   float: right;
-  opacity: 0.65;
+  opacity: 0.5;
 }
 
 details[open].card > summary.summary::after {
   content: "▾";
 }
 
-
-/* Stack-style checkbox inside grid rows (aligns with number inputs) */
-.checkbox-stack {
-  justify-content: flex-end;
-  min-height: 64px;
-}
-
-.checkbox-stack input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  margin-top: 8px;
-}
-
-
 /* Disabled fields (used for toggles like Allow Anomaly Crit / Stunned?) */
-label.is-disabled { opacity: 0.65; }
+label.is-disabled { opacity: 0.5; }
 input:disabled,
 select:disabled {
   background: #f3f3f3;
