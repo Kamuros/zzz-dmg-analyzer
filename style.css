@@ -222,3 +222,13 @@ details[open].card > summary.summary::after {
   height: 18px;
   margin-top: 8px;
 }
+
+
+/* Disabled fields (used for toggles like Allow Anomaly Crit / Stunned?) */
+label.is-disabled { opacity: 0.65; }
+input:disabled,
+select:disabled {
+  background: #f3f3f3;
+  color: #999;
+  cursor: not-allowed;
+}

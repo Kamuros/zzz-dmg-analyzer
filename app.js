@@ -107,11 +107,11 @@
     }
 
     boolCheckboxById(id) {
-      const el = this.dom.input(id);
+      const el = this.dom.input(id) || this.dom.select(id);
       if (!el) return false;
       // Supports both <input type="checkbox"> and <select> with 0/1 values.
-      if (String(el.type).toLowerCase() === "checkbox") return !!el.checked;
-      const v = String(el.value ?? "").toLowerCase();
+      if ((el instanceof HTMLInputElement) && String(el.type).toLowerCase() === "checkbox") return !!el.checked;
+      const v = String((/** @type {any} */ (el)).value ?? "").toLowerCase();
       return v === "1" || v === "true" || v === "yes" || v === "on";
     }
     readAtk() {
@@ -624,6 +624,13 @@ return total;
       { key: "defReductionPct", label: "DEF Reduction", kind: "pct" },
       { key: "defIgnorePct", label: "DEF Ignore", kind: "pct" },
 
+      { key: "enemyResAllPct", label: "All RES", kind: "pct" },
+      { key: "enemyResPhysicalPct", label: "Physical RES", kind: "pct" },
+      { key: "enemyResFirePct", label: "Fire RES", kind: "pct" },
+      { key: "enemyResIcePct", label: "Ice RES", kind: "pct" },
+      { key: "enemyResElectricPct", label: "Electric RES", kind: "pct" },
+      { key: "enemyResEtherPct", label: "Ether RES", kind: "pct" },
+
       { key: "dmgTakenPct", label: "DMG Taken", kind: "pct" },
       { key: "dmgTakenOtherPct", label: "Other DMG Taken", kind: "pct" },
       { key: "stunPct", label: "Stunned Multiplier", kind: "pct" },
@@ -669,6 +676,13 @@ return total;
 
         case "defReductionPct": return { kind: "pct", value: i.enemy.defReductionPct };
         case "defIgnorePct": return { kind: "pct", value: i.enemy.defIgnorePct };
+
+        case "enemyResAllPct": return { kind: "pct", value: i.enemy.resAllPct };
+        case "enemyResPhysicalPct": return { kind: "pct", value: Number(i.enemy.resByAttr.physical ?? 0) || 0 };
+        case "enemyResFirePct": return { kind: "pct", value: Number(i.enemy.resByAttr.fire ?? 0) || 0 };
+        case "enemyResIcePct": return { kind: "pct", value: Number(i.enemy.resByAttr.ice ?? 0) || 0 };
+        case "enemyResElectricPct": return { kind: "pct", value: Number(i.enemy.resByAttr.electric ?? 0) || 0 };
+        case "enemyResEtherPct": return { kind: "pct", value: Number(i.enemy.resByAttr.ether ?? 0) || 0 };
 
         case "dmgTakenPct": return { kind: "pct", value: i.enemy.dmgTakenPct };
         case "dmgTakenOtherPct": return { kind: "pct", value: i.enemy.dmgTakenOtherPct };
@@ -777,6 +791,42 @@ case "disorderDmgPct": return { kind: "pct", value: i.agent.anomaly.disorderPct 
           return () => { i.enemy.defIgnorePct = prev; };
         }
 
+        case "enemyResAllPct": {
+          const prev = i.enemy.resAllPct;
+          i.enemy.resAllPct = prev + dp;
+          return () => { i.enemy.resAllPct = prev; };
+        }
+        case "enemyResPhysicalPct": {
+          const prev = i.enemy.resByAttr.physical;
+          const base = Number(prev ?? 0) || 0;
+          i.enemy.resByAttr.physical = base + dp;
+          return () => { i.enemy.resByAttr.physical = prev; };
+        }
+        case "enemyResFirePct": {
+          const prev = i.enemy.resByAttr.fire;
+          const base = Number(prev ?? 0) || 0;
+          i.enemy.resByAttr.fire = base + dp;
+          return () => { i.enemy.resByAttr.fire = prev; };
+        }
+        case "enemyResIcePct": {
+          const prev = i.enemy.resByAttr.ice;
+          const base = Number(prev ?? 0) || 0;
+          i.enemy.resByAttr.ice = base + dp;
+          return () => { i.enemy.resByAttr.ice = prev; };
+        }
+        case "enemyResElectricPct": {
+          const prev = i.enemy.resByAttr.electric;
+          const base = Number(prev ?? 0) || 0;
+          i.enemy.resByAttr.electric = base + dp;
+          return () => { i.enemy.resByAttr.electric = prev; };
+        }
+        case "enemyResEtherPct": {
+          const prev = i.enemy.resByAttr.ether;
+          const base = Number(prev ?? 0) || 0;
+          i.enemy.resByAttr.ether = base + dp;
+          return () => { i.enemy.resByAttr.ether = prev; };
+        }
+
         case "anomProf": {
           const prev = i.agent.anomaly.prof;
           i.agent.anomaly.prof = Math.max(0, prev + df);
@@ -816,7 +866,7 @@ case "disorderDmgPct": {
       const rows = [];
       const ruptureAllowed = new Set([
         "dmgGenericPct","dmgAttrPct","dmgSkillTypePct","critRatePct","critDmgPct",
-        "dmgTakenPct","stunPct","sheerForce","sheerDmgBonusPct"
+        "enemyResAllPct","enemyResPhysicalPct","enemyResFirePct","enemyResIcePct","enemyResElectricPct","enemyResEtherPct","dmgTakenPct","dmgTakenOtherPct","stunPct","sheerForce","sheerDmgBonusPct"
       ]);
 
       for (const m of StatMeta.list()) {
@@ -1118,7 +1168,7 @@ this._set("penRatioPct", penRatioPct ?? 0);
       this._set("anomDmgPct", an?.dmgPct ?? 0);
       this._set("disorderDmgPct", an?.disorderPct ?? 0);
 
-      const allowCritEl = this.dom.input("anomAllowCrit");
+      const allowCritEl = this.dom.input("anomAllowCrit") || this.dom.select("anomAllowCrit");
       if (allowCritEl) {
         if (String(allowCritEl.type).toLowerCase() === "checkbox") {
           allowCritEl.checked = !!an?.allowCrit;
@@ -1158,7 +1208,8 @@ this._set("penRatioPct", penRatioPct ?? 0);
       this._set("defIgnorePct", enemy?.defIgnorePct ?? 0);
 
       this._set("dmgTakenPct", enemy?.dmgTakenPct ?? 0);
-const isStunnedEl = this.dom.select("isStunned");
+      this._set("dmgTakenOtherPct", enemy?.dmgTakenOtherPct ?? 0);
+      const isStunnedEl = this.dom.select("isStunned");
       if (isStunnedEl) isStunnedEl.value = String(!!enemy?.isStunned);
 
       this._set("stunPct", enemy?.stunPct ?? 150);
@@ -1205,6 +1256,8 @@ const isStunnedEl = this.dom.select("isStunned");
       const i = this.parser.read();
       this.renderer.applyModeVisibility(i.mode);
 
+      this._applyToggleUi(i);
+
       const preview = Preview.compute(i);
       const kpiItems = [{ t: "Expected DMG", v: MathUtil.fmt0(preview.output_expected) }];
 
@@ -1217,9 +1270,6 @@ const isStunnedEl = this.dom.select("isStunned");
         kpiItems.push({ t: "Anomaly Type", v: anomLabel });
         if (preview.anom.kind === "dot") {
           kpiItems.push({ t: "Expected Tick DMG", v: MathUtil.fmt0(preview.anom.anomalyPerTick.avg) });
-          kpiItems.push({ t: "Ticks", v: MathUtil.fmt0(preview.anom.tickCount) });
-          kpiItems.push({ t: "Tick Interval (Sec)", v: MathUtil.fmtSmart(preview.anom.tickIntervalSec) });
-          kpiItems.push({ t: "DoT Duration (Sec)", v: MathUtil.fmtSmart(preview.anom.durationSec) });
           kpiItems.push({ t: "Anomaly Total", v: MathUtil.fmt0(preview.anom.anomalyPerProc.avg) });
         } else {
           kpiItems.push({ t: "Anomaly Hit", v: MathUtil.fmt0(preview.anom.anomalyPerProc.avg) });
@@ -1233,6 +1283,26 @@ const isStunnedEl = this.dom.select("isStunned");
 
       const marginal = MarginalAnalyzer.compute(i);
       this.renderer.renderMarginalTable(i, marginal);
+    }
+
+
+    _applyToggleUi(i) {
+      // Allow Anomaly Crit -> enable/disable override fields
+      const allowCrit = !!i.agent.anomaly.allowCrit;
+      this._setDisabled("anomCritRatePct", !allowCrit);
+      this._setDisabled("anomCritDmgPct", !allowCrit);
+
+      // Stunned? -> enable/disable stunned multiplier input
+      const stunned = !!i.enemy.isStunned;
+      this._setDisabled("stunPct", !stunned);
+    }
+
+    _setDisabled(id, disabled) {
+      const el = this.dom.input(id) || this.dom.select(id);
+      if (!el) return;
+      (/** @type {any} */ (el)).disabled = !!disabled;
+      const label = el.closest ? el.closest("label") : null;
+      if (label) label.classList.toggle("is-disabled", !!disabled);
     }
 
     _wireEvents() {
@@ -1341,7 +1411,8 @@ const isStunnedEl = this.dom.select("isStunned");
           defReductionPct: i.enemy.defReductionPct,
           defIgnorePct: i.enemy.defIgnorePct,
           dmgTakenPct: i.enemy.dmgTakenPct,
-isStunned: i.enemy.isStunned,
+          dmgTakenOtherPct: i.enemy.dmgTakenOtherPct,
+          isStunned: i.enemy.isStunned,
           stunPct: i.enemy.stunPct,
         },
         marginal: {
