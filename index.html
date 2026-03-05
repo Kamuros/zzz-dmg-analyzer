@@ -175,11 +175,7 @@
       Anomaly DMG (%)
       <input id="anomDmgPct" step="0.1" type="number" value="0"/>
      </label>
-     <label>
-      Abloom DMG (%)
-      <input id="abloomDmgPct" step="0.1" type="number" value="0"/>
-     </label>
-     <label class="hidden disorder-ui">
+<label class="hidden disorder-ui">
       Disorder DMG (%)
       <input id="disorderDmgPct" step="0.1" type="number" value="0"/>
      </label>
@@ -248,11 +244,12 @@
    </summary>
    <div class="form mt-12_5">
     <div class="form-row cols-3">
-     <label class="label-inline">
-      <span>
-       Allow Anomaly Crit
-      </span>
-      <input id="anomAllowCrit" type="checkbox"/>
+     <label>
+      Allow Anomaly Crit
+      <select id="anomAllowCrit">
+        <option value="0" selected>Off</option>
+        <option value="1">On</option>
+      </select>
      </label>
      <label>
       Anomaly Crit Rate (%)
@@ -330,6 +327,10 @@
      <label>
       DMG Taken (%)
       <input id="dmgTakenPct" step="0.1" type="number" value="0"/>
+     </label>
+     <label>
+      Other DMG Taken (%)
+      <input id="dmgTakenOtherPct" step="0.1" type="number" value="0"/>
      </label>
      <label>
       Stunned?

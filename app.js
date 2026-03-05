@@ -108,7 +108,11 @@
 
     boolCheckboxById(id) {
       const el = this.dom.input(id);
-      return !!el?.checked;
+      if (!el) return false;
+      // Supports both <input type="checkbox"> and <select> with 0/1 values.
+      if (String(el.type).toLowerCase() === "checkbox") return !!el.checked;
+      const v = String(el.value ?? "").toLowerCase();
+      return v === "1" || v === "true" || v === "yes" || v === "on";
     }
     readAtk() {
       return Math.max(0, this.numById("atk", 0));
@@ -145,8 +149,7 @@ i.agent.pen.ratioPct = this.numById("penRatioPct", 0);
       i.agent.anomaly.type = this.strById("anomType", "auto");
       i.agent.anomaly.prof = Math.max(0, this.numById("anomProf", 100));
       i.agent.anomaly.dmgPct = this.numById("anomDmgPct", 0);
-      i.agent.anomaly.abloomPct = this.numById("abloomDmgPct", 0);
-      i.agent.anomaly.disorderPct = this.numById("disorderDmgPct", 0);
+i.agent.anomaly.disorderPct = this.numById("disorderDmgPct", 0);
       i.agent.anomaly.allowCrit = this.boolCheckboxById("anomAllowCrit");
       i.agent.anomaly.critRatePctOverride = this.optNumById("anomCritRatePct");
       i.agent.anomaly.critDmgPctOverride = this.optNumById("anomCritDmgPct");
@@ -177,6 +180,7 @@ i.agent.pen.ratioPct = this.numById("penRatioPct", 0);
       i.enemy.defIgnorePct = this.numById("defIgnorePct", 0);
 
       i.enemy.dmgTakenPct = this.numById("dmgTakenPct", 0);
+      i.enemy.dmgTakenOtherPct = this.numById("dmgTakenOtherPct", 0);
 i.enemy.isStunned = this.boolSelectById("isStunned");
       i.enemy.stunPct = this.numById("stunPct", 150);
 
@@ -253,7 +257,6 @@ i.enemy.isStunned = this.boolSelectById("isStunned");
             type: "auto",
             prof: 100,
             dmgPct: 0,
-            abloomPct: 0,
 disorderPct: 0,
             tickCountOverride: null,
             tickIntervalSecOverride: null,
@@ -278,6 +281,7 @@ disorderPct: 0,
           defReductionPct: 0,
           defIgnorePct: 0,
           dmgTakenPct: 0,
+          dmgTakenOtherPct: 0,
 isStunned: false,
           stunPct: 150,
         },
@@ -368,8 +372,8 @@ isStunned: false,
 
     /** @param {Inputs} i */
     static computeVulnMult(i) {
-      return MathUtil.pctToMult(Number(i.enemy.dmgTakenPct || 0));
-    }
+      return MathUtil.pctToMult((Number(i.enemy.dmgTakenPct) || 0) + (Number(i.enemy.dmgTakenOtherPct) || 0));
+}
 
     /** @param {Inputs} i */
     static computeDefMult(i) {
@@ -491,10 +495,10 @@ return total;
 
       const stdBonusMult = MathUtil.pctToMult(dmgPctBase);
 
-      // Separate Anomaly/Abloom bucket (additive with each other, separate from standard DMG % bucket)
-      const anomalySpecialMult = MathUtil.pctToMult((Number(i.agent.anomaly.dmgPct) || 0) + (Number(i.agent.anomaly.abloomPct) || 0));
+      // Separate Anomaly DMG % bucket (separate from standard DMG % bucket)
+      const anomalySpecialMult = MathUtil.pctToMult((Number(i.agent.anomaly.dmgPct) || 0) + (Number(i.agent.anomaly.dmgPct) || 0));
 
-      // Separate Disorder bucket (no Abloom by default)
+      // Separate Disorder DMG % bucket
       const disorderSpecialMult = MathUtil.pctToMult(Number(i.agent.anomaly.disorderPct) || 0);
 
       const defMult = ZzzMath.computeDefMult(i);
@@ -621,13 +625,13 @@ return total;
       { key: "defIgnorePct", label: "DEF Ignore", kind: "pct" },
 
       { key: "dmgTakenPct", label: "DMG Taken", kind: "pct" },
+      { key: "dmgTakenOtherPct", label: "Other DMG Taken", kind: "pct" },
       { key: "stunPct", label: "Stunned Multiplier", kind: "pct" },
 
       { key: "anomProf", label: "Anomaly Proficiency", kind: "flat" },
 
       { key: "anomDmgPct", label: "Anomaly DMG", kind: "pct" },
-      { key: "abloomDmgPct", label: "Abloom DMG", kind: "pct" },
-      { key: "disorderDmgPct", label: "Disorder DMG", kind: "pct" },
+{ key: "disorderDmgPct", label: "Disorder DMG", kind: "pct" },
 
       { key: "sheerForce", label: "Sheer Force", kind: "flat" },
       { key: "sheerDmgBonusPct", label: "Sheer DMG Bonus", kind: "pct" },
@@ -667,13 +671,13 @@ return total;
         case "defIgnorePct": return { kind: "pct", value: i.enemy.defIgnorePct };
 
         case "dmgTakenPct": return { kind: "pct", value: i.enemy.dmgTakenPct };
+        case "dmgTakenOtherPct": return { kind: "pct", value: i.enemy.dmgTakenOtherPct };
         case "stunPct": return { kind: "pct", value: i.enemy.stunPct };
 
         case "anomProf": return { kind: "flat", value: i.agent.anomaly.prof };
 
         case "anomDmgPct": return { kind: "pct", value: i.agent.anomaly.dmgPct };
-        case "abloomDmgPct": return { kind: "pct", value: i.agent.anomaly.abloomPct };
-        case "disorderDmgPct": return { kind: "pct", value: i.agent.anomaly.disorderPct };
+case "disorderDmgPct": return { kind: "pct", value: i.agent.anomaly.disorderPct };
 
         case "sheerForce": return { kind: "flat", value: i.agent.rupture.sheerForce };
         case "sheerDmgBonusPct": return { kind: "pct", value: i.agent.rupture.sheerDmgBonusPct };
@@ -784,12 +788,7 @@ return total;
           i.agent.anomaly.dmgPct = prev + dp;
           return () => { i.agent.anomaly.dmgPct = prev; };
         }
-        case "abloomDmgPct": {
-          const prev = i.agent.anomaly.abloomPct;
-          i.agent.anomaly.abloomPct = prev + dp;
-          return () => { i.agent.anomaly.abloomPct = prev; };
-        }
-        case "disorderDmgPct": {
+case "disorderDmgPct": {
           const prev = i.agent.anomaly.disorderPct;
           i.agent.anomaly.disorderPct = prev + dp;
           return () => { i.agent.anomaly.disorderPct = prev; };
@@ -822,7 +821,7 @@ return total;
 
       for (const m of StatMeta.list()) {
         if (i.mode === "anomaly" && (m.key === "dmgSkillTypePct" || m.key === "critRatePct" || m.key === "critDmgPct")) continue;
-        if (i.mode !== "anomaly" && (m.key === "anomProf" || m.key === "anomDmgPct" || m.key === "abloomDmgPct" || m.key === "disorderDmgPct")) continue;
+        if (i.mode !== "anomaly" && (m.key === "anomProf" || m.key === "anomDmgPct"  || m.key === "disorderDmgPct")) continue;
         if (!AppConfig.SHOW_DISORDER_UI && (m.key === "disorderDmgPct")) continue;
 
         if (i.mode === "rupture") {
@@ -831,7 +830,7 @@ return total;
           if (m.key === "sheerForce" || m.key === "sheerDmgBonusPct") continue;
         }
 
-        if (i.mode === "standard" && (m.key === "anomDmgPct" || m.key === "abloomDmgPct" || m.key === "disorderDmgPct")) continue;
+        if (i.mode === "standard" && (m.key === "anomDmgPct"  || m.key === "disorderDmgPct")) continue;
 
         const override = MarginalAppliedStore.get(m.key);
         const applied = MarginalAnalyzer.resolveDelta(m.key, override);
@@ -1120,7 +1119,13 @@ this._set("penRatioPct", penRatioPct ?? 0);
       this._set("disorderDmgPct", an?.disorderPct ?? 0);
 
       const allowCritEl = this.dom.input("anomAllowCrit");
-      if (allowCritEl) allowCritEl.checked = !!an?.allowCrit;
+      if (allowCritEl) {
+        if (String(allowCritEl.type).toLowerCase() === "checkbox") {
+          allowCritEl.checked = !!an?.allowCrit;
+        } else {
+          allowCritEl.value = (an?.allowCrit ? "1" : "0");
+        }
+      }
 
       this._setIfExists("anomCritRatePct", (an?.critRatePctOverride ?? ""));
       this._setIfExists("anomCritDmgPct", (an?.critDmgPctOverride ?? ""));

@@ -209,3 +209,16 @@ details.card > summary.summary::after {
 details[open].card > summary.summary::after {
   content: "▾";
 }
+
+
+/* Stack-style checkbox inside grid rows (aligns with number inputs) */
+.checkbox-stack {
+  justify-content: flex-end;
+  min-height: 64px;
+}
+
+.checkbox-stack input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 8px;
+}
