@@ -177,7 +177,14 @@ tr.top-row td {
 }
 
 tr.best-row td:first-child {
-  font-weight: 650;
+  font-weight: 600;
+}
+
+tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+tbody tr:hover {
+  background: #f2f6ff;
 }
 
 .kpi {
