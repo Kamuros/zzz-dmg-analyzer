@@ -75,13 +75,29 @@
       this.dom = dom;
     }
 
+    parseNumericValue(raw, fallback = 0) {
+      if (raw === "" || raw === null || raw === undefined) return fallback;
+      if (typeof raw === "number") return Number.isFinite(raw) ? raw : fallback;
+      const s = String(raw).trim();
+      if (!s) return fallback;
+      if (!/^[+\-\d.\s]+$/.test(s)) return fallback;
+      const compact = s.replace(/\s+/g, "");
+      const parts = compact.split("+");
+      let total = 0;
+      for (const part of parts) {
+        if (!part) return fallback;
+        const n = Number(part);
+        if (!Number.isFinite(n)) return fallback;
+        total += n;
+      }
+      return total;
+    }
+
     numById(id, fallback = 0) {
       const el = this.dom.input(id) || this.dom.select(id);
       if (!el) return fallback;
       const v = /** @type {any} */ (el).value;
-      if (v === "" || v === null || v === undefined) return fallback;
-      const n = Number(v);
-      return Number.isFinite(n) ? n : fallback;
+      return this.parseNumericValue(v, fallback);
     }
 
     optNumById(id) {
@@ -89,7 +105,7 @@
       if (!el) return null;
       const v = el.value;
       if (v === "" || v === null || v === undefined) return null;
-      const n = Number(v);
+      const n = this.parseNumericValue(v, NaN);
       return Number.isFinite(n) ? n : null;
     }
 
@@ -127,6 +143,7 @@
 
       i.jsonName = (this.strById("jsonName", "").trim());
       i.mode = /** @type {Inputs["mode"]} */ (mode);
+      i.settings.clampResMult = this.boolCheckboxById("clampResMult");
 
       i.agent.level = Math.max(1, Math.floor(this.numById("agentLevel", 60)));
       i.agent.attribute = /** @type {Attribute} */ (this.strById("attribute", "physical"));
@@ -174,7 +191,6 @@ i.agent.anomaly.disorderPct = this.numById("disorderDmgPct", 0);
       i.enemy.resByAttr.ether = this.optNumById("enemyResEtherPct");
 
       i.enemy.resReductionPct = this.numById("resReductionPct", 0);
-      i.enemy.resIgnorePct = this.numById("resIgnorePct", 0);
 
       i.enemy.defReductionPct = this.numById("defReductionPct", 0);
       i.enemy.defIgnorePct = this.numById("defIgnorePct", 0);
@@ -198,6 +214,7 @@ i.enemy.isStunned = this.boolSelectById("isStunned");
    * @typedef {Object} Inputs
    * @property {string} jsonName
    * @property {"standard"|"anomaly"|"rupture"} mode
+   * @property {{ clampResMult:boolean }} settings
    * @property {{
    *   level: number,
    *   attribute: Attribute,
@@ -205,6 +222,7 @@ i.enemy.isStunned = this.boolSelectById("isStunned");
    *   crit: {rate:number, dmg:number},
    *   dmgBuckets: {generic:number, attribute:number, skillType:number, other:number},
    *   pen: {ratioPct:number, flat:number},
+   *   resIgnorePct: number,
    *   skillMultPct: number,
    *   anomaly: {
    *     type: string,
@@ -227,7 +245,6 @@ i.enemy.isStunned = this.boolSelectById("isStunned");
    *   resAllPct:number,
    *   resByAttr: Record<Attribute, number|null>,
    *   resReductionPct:number,
-   *   resIgnorePct:number,
    *   defReductionPct:number,
    *   defIgnorePct:number,
    *   dmgTakenPct:number,
@@ -245,6 +262,9 @@ i.enemy.isStunned = this.boolSelectById("isStunned");
       return {
         jsonName: "",
         mode: "standard",
+        settings: {
+          clampResMult: false,
+        },
         agent: {
           level: 60,
           attribute: "physical",
@@ -252,6 +272,7 @@ i.enemy.isStunned = this.boolSelectById("isStunned");
           crit: { rate: 0.05, dmg: 0.50 },
           dmgBuckets: { generic: 0, attribute: 0, skillType: 0, other: 0 },
           pen: { ratioPct: 0, flat: 0 },
+          resIgnorePct: 0,
           skillMultPct: 100,
           anomaly: {
             type: "auto",
@@ -277,7 +298,6 @@ disorderPct: 0,
           resAllPct: 0,
           resByAttr: { physical: null, fire: null, ice: null, electric: null, ether: null },
           resReductionPct: 0,
-          resIgnorePct: 0,
           defReductionPct: 0,
           defIgnorePct: 0,
           dmgTakenPct: 0,
@@ -366,8 +386,9 @@ isStunned: false,
     /** @param {Inputs} i */
     static computeResMult(i) {
       const baseRes = ZzzMath.resPctForAttr(i);
-      const effRes = baseRes - (Number(i.enemy.resReductionPct) || 0) - (Number(i.enemy.resIgnorePct) || 0);
-      return 1 - (effRes / 100);
+      const effRes = baseRes - (Number(i.enemy.resReductionPct) || 0) - (Number(i.agent.resIgnorePct) || 0);
+      const resMult = 1 - (effRes / 100);
+      return i.settings?.clampResMult ? MathUtil.clamp(resMult, 0, 2) : resMult;
     }
 
     /** @param {Inputs} i */
@@ -623,13 +644,8 @@ return total;
 
       { key: "defReductionPct", label: "DEF Reduction", kind: "pct" },
       { key: "defIgnorePct", label: "DEF Ignore", kind: "pct" },
-
-      { key: "enemyResAllPct", label: "All RES", kind: "pct" },
-      { key: "enemyResPhysicalPct", label: "Physical RES", kind: "pct" },
-      { key: "enemyResFirePct", label: "Fire RES", kind: "pct" },
-      { key: "enemyResIcePct", label: "Ice RES", kind: "pct" },
-      { key: "enemyResElectricPct", label: "Electric RES", kind: "pct" },
-      { key: "enemyResEtherPct", label: "Ether RES", kind: "pct" },
+      { key: "resReductionPct", label: "RES Reduction", kind: "pct" },
+      { key: "resIgnorePct", label: "RES Ignore", kind: "pct" },
 
       { key: "dmgTakenPct", label: "DMG Taken", kind: "pct" },
       { key: "dmgTakenOtherPct", label: "Other DMG Taken", kind: "pct" },
@@ -670,12 +686,8 @@ return total;
       penFlat: { kind: "flat", value: 9 },
       defReductionPct: { kind: "pct", value: 0 },
       defIgnorePct: { kind: "pct", value: 0 },
-      enemyResAllPct: { kind: "pct", value: 0 },
-      enemyResPhysicalPct: { kind: "pct", value: 0 },
-      enemyResFirePct: { kind: "pct", value: 0 },
-      enemyResIcePct: { kind: "pct", value: 0 },
-      enemyResElectricPct: { kind: "pct", value: 0 },
-      enemyResEtherPct: { kind: "pct", value: 0 },
+      resReductionPct: { kind: "pct", value: 5 },
+      resIgnorePct: { kind: "pct", value: 5 },
       dmgTakenPct: { kind: "pct", value: 5 },
       dmgTakenOtherPct: { kind: "pct", value: 5 },
       stunPct: { kind: "pct", value: 15 },
@@ -705,13 +717,8 @@ return total;
 
         case "defReductionPct": return { kind: "pct", value: i.enemy.defReductionPct };
         case "defIgnorePct": return { kind: "pct", value: i.enemy.defIgnorePct };
-
-        case "enemyResAllPct": return { kind: "pct", value: i.enemy.resAllPct };
-        case "enemyResPhysicalPct": return { kind: "pct", value: Number(i.enemy.resByAttr.physical ?? 0) || 0 };
-        case "enemyResFirePct": return { kind: "pct", value: Number(i.enemy.resByAttr.fire ?? 0) || 0 };
-        case "enemyResIcePct": return { kind: "pct", value: Number(i.enemy.resByAttr.ice ?? 0) || 0 };
-        case "enemyResElectricPct": return { kind: "pct", value: Number(i.enemy.resByAttr.electric ?? 0) || 0 };
-        case "enemyResEtherPct": return { kind: "pct", value: Number(i.enemy.resByAttr.ether ?? 0) || 0 };
+        case "resReductionPct": return { kind: "pct", value: i.enemy.resReductionPct };
+        case "resIgnorePct": return { kind: "pct", value: i.agent.resIgnorePct };
 
         case "dmgTakenPct": return { kind: "pct", value: i.enemy.dmgTakenPct };
         case "dmgTakenOtherPct": return { kind: "pct", value: i.enemy.dmgTakenOtherPct };
@@ -815,41 +822,15 @@ case "disorderDmgPct": return { kind: "pct", value: i.agent.anomaly.disorderPct 
           i.enemy.defIgnorePct = prev + dp;
           return () => { i.enemy.defIgnorePct = prev; };
         }
-
-        case "enemyResAllPct": {
-          const prev = i.enemy.resAllPct;
-          i.enemy.resAllPct = prev + dp;
-          return () => { i.enemy.resAllPct = prev; };
+        case "resReductionPct": {
+          const prev = i.enemy.resReductionPct;
+          i.enemy.resReductionPct = prev + dp;
+          return () => { i.enemy.resReductionPct = prev; };
         }
-        case "enemyResPhysicalPct": {
-          const prev = i.enemy.resByAttr.physical;
-          const base = Number(prev ?? 0) || 0;
-          i.enemy.resByAttr.physical = base + dp;
-          return () => { i.enemy.resByAttr.physical = prev; };
-        }
-        case "enemyResFirePct": {
-          const prev = i.enemy.resByAttr.fire;
-          const base = Number(prev ?? 0) || 0;
-          i.enemy.resByAttr.fire = base + dp;
-          return () => { i.enemy.resByAttr.fire = prev; };
-        }
-        case "enemyResIcePct": {
-          const prev = i.enemy.resByAttr.ice;
-          const base = Number(prev ?? 0) || 0;
-          i.enemy.resByAttr.ice = base + dp;
-          return () => { i.enemy.resByAttr.ice = prev; };
-        }
-        case "enemyResElectricPct": {
-          const prev = i.enemy.resByAttr.electric;
-          const base = Number(prev ?? 0) || 0;
-          i.enemy.resByAttr.electric = base + dp;
-          return () => { i.enemy.resByAttr.electric = prev; };
-        }
-        case "enemyResEtherPct": {
-          const prev = i.enemy.resByAttr.ether;
-          const base = Number(prev ?? 0) || 0;
-          i.enemy.resByAttr.ether = base + dp;
-          return () => { i.enemy.resByAttr.ether = prev; };
+        case "resIgnorePct": {
+          const prev = i.agent.resIgnorePct;
+          i.agent.resIgnorePct = prev + dp;
+          return () => { i.agent.resIgnorePct = prev; };
         }
 
         case "anomProf": {
@@ -891,7 +872,7 @@ case "disorderDmgPct": {
       const rows = [];
       const ruptureAllowed = new Set([
         "dmgGenericPct","dmgAttrPct","dmgSkillTypePct","critRatePct","critDmgPct",
-        "enemyResAllPct","enemyResPhysicalPct","enemyResFirePct","enemyResIcePct","enemyResElectricPct","enemyResEtherPct","dmgTakenPct","dmgTakenOtherPct","stunPct","sheerForce","sheerDmgBonusPct"
+        "resReductionPct","resIgnorePct","dmgTakenPct","dmgTakenOtherPct","stunPct","sheerForce","sheerDmgBonusPct"
       ]);
 
       for (const m of StatMeta.list()) {
@@ -1192,6 +1173,8 @@ case "disorderDmgPct": {
       const mode = (data?.mode ?? "standard");
       const modeEl = this.dom.select("mode");
       if (modeEl) modeEl.value = mode;
+      const clampResMultEl = this.dom.select("clampResMult");
+      if (clampResMultEl) clampResMultEl.value = (data?.settings?.clampResMult ? "1" : "0");
 
       // Agent
       const agent = data?.agent ?? {};
@@ -1267,7 +1250,6 @@ this._set("penRatioPct", penRatioPct ?? 0);
       this._setIfExists("enemyResEtherPct", enemy?.resByAttr?.ether ?? "");
 
       this._setIfExists("resReductionPct", enemy?.resReductionPct ?? 0);
-      this._setIfExists("resIgnorePct", enemy?.resIgnorePct ?? 0);
 
       this._set("defReductionPct", enemy?.defReductionPct ?? 0);
       this._set("defIgnorePct", enemy?.defIgnorePct ?? 0);
@@ -1455,6 +1437,7 @@ this._set("penRatioPct", penRatioPct ?? 0);
       return {
         jsonName: i.jsonName,
         mode: i.mode,
+        settings: { clampResMult: !!i.settings.clampResMult },
         agent: {
           level: i.agent.level,
           attribute: i.agent.attribute,
@@ -1462,6 +1445,7 @@ this._set("penRatioPct", penRatioPct ?? 0);
           crit: { rate: i.agent.crit.rate, dmg: i.agent.crit.dmg },
           dmgBuckets: { ...i.agent.dmgBuckets },
           pen: { ratioPct: i.agent.pen.ratioPct, flat: i.agent.pen.flat },
+          resIgnorePct: i.agent.resIgnorePct,
           skillMultPct: i.agent.skillMultPct,
           anomaly: { ...i.agent.anomaly },
           rupture: { ...i.agent.rupture },
@@ -1472,7 +1456,6 @@ this._set("penRatioPct", penRatioPct ?? 0);
           resAllPct: i.enemy.resAllPct,
           resByAttr: { ...i.enemy.resByAttr },
           resReductionPct: i.enemy.resReductionPct,
-          resIgnorePct: i.enemy.resIgnorePct,
           defReductionPct: i.enemy.defReductionPct,
           defIgnorePct: i.enemy.defIgnorePct,
           dmgTakenPct: i.enemy.dmgTakenPct,
