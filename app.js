@@ -149,7 +149,6 @@
 
       i.jsonName = (this.strById("jsonName", "").trim());
       i.mode = /** @type {Inputs["mode"]} */ (mode);
-      i.settings.clampResMult = this.boolCheckboxById("clampResMult");
 
       i.agent.level = Math.max(1, Math.floor(this.numById("agentLevel", 60)));
       i.agent.attribute = /** @type {Attribute} */ (this.strById("attribute", "physical"));
@@ -189,7 +188,6 @@ i.agent.anomaly.disorderPct = this.numById("disorderDmgPct", 0);
       i.enemy.level = Math.max(1, Math.floor(this.numById("enemyLevel", 70)));
       i.enemy.def = Math.max(0, this.numById("enemyDef", 0));
 
-      i.enemy.resAllPct = this.numById("enemyResAllPct", 0);
       i.enemy.resByAttr.physical = this.optNumById("enemyResPhysicalPct");
       i.enemy.resByAttr.fire = this.optNumById("enemyResFirePct");
       i.enemy.resByAttr.ice = this.optNumById("enemyResIcePct");
@@ -220,7 +218,6 @@ i.enemy.isStunned = this.boolSelectById("isStunned");
    * @typedef {Object} Inputs
    * @property {string} jsonName
    * @property {"standard"|"anomaly"|"rupture"} mode
-   * @property {{ clampResMult:boolean }} settings
    * @property {{
    *   level: number,
    *   attribute: Attribute,
@@ -248,13 +245,13 @@ i.enemy.isStunned = this.boolSelectById("isStunned");
    * @property {{
    *   level:number,
    *   def:number,
-   *   resAllPct:number,
    *   resByAttr: Record<Attribute, number|null>,
    *   resReductionPct:number,
    *   defReductionPct:number,
    *   defIgnorePct:number,
    *   dmgTakenPct:number,
-*   isStunned:boolean,
+   *   dmgTakenOtherPct:number,
+   *   isStunned:boolean,
    *   stunPct:number
    * }} enemy
    * @property {{
@@ -268,9 +265,6 @@ i.enemy.isStunned = this.boolSelectById("isStunned");
       return {
         jsonName: "",
         mode: "standard",
-        settings: {
-          clampResMult: false,
-        },
         agent: {
           level: 60,
           attribute: "physical",
@@ -301,7 +295,6 @@ disorderPct: 0,
         enemy: {
           level: 70,
           def: 0,
-          resAllPct: 0,
           resByAttr: { physical: null, fire: null, ice: null, electric: null, ether: null },
           resReductionPct: 0,
           defReductionPct: 0,
@@ -383,18 +376,16 @@ isStunned: false,
 
     /** @param {Inputs} i */
     static resPctForAttr(i) {
-      const all = Number(i.enemy.resAllPct ?? 0);
       const specific = i.enemy.resByAttr[i.agent.attribute];
-      if (specific !== null && specific !== undefined && Number.isFinite(specific)) return all + specific;
-      return all;
+      if (specific !== null && specific !== undefined && Number.isFinite(specific)) return specific;
+      return 0;
     }
 
     /** @param {Inputs} i */
     static computeResMult(i) {
       const baseRes = ZzzMath.resPctForAttr(i);
       const effRes = baseRes - (Number(i.enemy.resReductionPct) || 0) - (Number(i.agent.resIgnorePct) || 0);
-      const resMult = 1 - (effRes / 100);
-      return i.settings?.clampResMult ? MathUtil.clamp(resMult, 0, 2) : resMult;
+      return 1 - (effRes / 100);
     }
 
     /** @param {Inputs} i */
@@ -658,9 +649,8 @@ return total;
       { key: "stunPct", label: "Stunned Multiplier", kind: "pct" },
 
       { key: "anomProf", label: "Anomaly Proficiency", kind: "flat" },
-
       { key: "anomDmgPct", label: "Anomaly DMG", kind: "pct" },
-{ key: "disorderDmgPct", label: "Disorder DMG", kind: "pct" },
+      { key: "disorderDmgPct", label: "Disorder DMG", kind: "pct" },
 
       { key: "sheerForce", label: "Sheer Force", kind: "flat" },
       { key: "sheerDmgBonusPct", label: "Sheer DMG Bonus", kind: "pct" },
@@ -677,10 +667,7 @@ return total;
     /** @param {string} key */
     static byKey(key) { return StatMeta._MAP.get(key) ?? null; }
   }
-
   class MarginalAnalyzer {
-    // Smart stat-specific increments make the marginal table immediately useful
-    // without requiring manual per-row setup every time.
     static DEFAULTS_BY_KEY = {
       atk: { kind: "flat", value: 0 },
       dmgGenericPct: { kind: "pct", value: 0 },
@@ -703,8 +690,6 @@ return total;
       sheerForce: { kind: "flat", value: 0 },
       sheerDmgBonusPct: { kind: "pct", value: 0 },
     };
-
-    static ROLL_EFFICIENCY_KEYS = new Set();
 
     /** @param {Inputs} i @param {string} key */
     static originalDisplay(i, key) {
@@ -731,9 +716,8 @@ return total;
         case "stunPct": return { kind: "pct", value: i.enemy.stunPct };
 
         case "anomProf": return { kind: "flat", value: i.agent.anomaly.prof };
-
         case "anomDmgPct": return { kind: "pct", value: i.agent.anomaly.dmgPct };
-case "disorderDmgPct": return { kind: "pct", value: i.agent.anomaly.disorderPct };
+        case "disorderDmgPct": return { kind: "pct", value: i.agent.anomaly.disorderPct };
 
         case "sheerForce": return { kind: "flat", value: i.agent.rupture.sheerForce };
         case "sheerDmgBonusPct": return { kind: "pct", value: i.agent.rupture.sheerDmgBonusPct };
@@ -755,6 +739,19 @@ case "disorderDmgPct": return { kind: "pct", value: i.agent.anomaly.disorderPct 
         if (!expectsFlat && override.kind === "pct") return override;
       }
       return MarginalAnalyzer.defaultApplied(key);
+    }
+
+    /** @param {Inputs} i */
+    static applyAllCustomAppliedInPlace(i) {
+      const reverts = [];
+      for (const m of StatMeta.list()) {
+        const override = MarginalAppliedStore.get(m.key);
+        const applied = MarginalAnalyzer.resolveDelta(m.key, override);
+        reverts.push(MarginalAnalyzer.applyDeltaInPlace(i, m.key, applied));
+      }
+      return () => {
+        for (let idx = reverts.length - 1; idx >= 0; idx--) reverts[idx]();
+      };
     }
 
     /** @param {Inputs} i @param {string} key @param {{kind:"pct"|"flat",value:number}} d */
@@ -812,6 +809,11 @@ case "disorderDmgPct": return { kind: "pct", value: i.agent.anomaly.disorderPct 
           i.enemy.dmgTakenPct = prev + dp;
           return () => { i.enemy.dmgTakenPct = prev; };
         }
+        case "dmgTakenOtherPct": {
+          const prev = i.enemy.dmgTakenOtherPct;
+          i.enemy.dmgTakenOtherPct = prev + dp;
+          return () => { i.enemy.dmgTakenOtherPct = prev; };
+        }
         case "stunPct": {
           const prev = i.enemy.stunPct;
           i.enemy.stunPct = prev + dp;
@@ -850,7 +852,7 @@ case "disorderDmgPct": return { kind: "pct", value: i.agent.anomaly.disorderPct 
           i.agent.anomaly.dmgPct = prev + dp;
           return () => { i.agent.anomaly.dmgPct = prev; };
         }
-case "disorderDmgPct": {
+        case "disorderDmgPct": {
           const prev = i.agent.anomaly.disorderPct;
           i.agent.anomaly.disorderPct = prev + dp;
           return () => { i.agent.anomaly.disorderPct = prev; };
@@ -872,6 +874,7 @@ case "disorderDmgPct": {
 
     /** @param {Inputs} i */
     static compute(i) {
+      const applyBaseline = MarginalAnalyzer.applyAllCustomAppliedInPlace(i);
       const base = Preview.compute(i);
       const baseOut = base.output;
 
@@ -897,17 +900,12 @@ case "disorderDmgPct": {
         const override = MarginalAppliedStore.get(m.key);
         const applied = MarginalAnalyzer.resolveDelta(m.key, override);
 
-        const revertUp = MarginalAnalyzer.applyDeltaInPlace(i, m.key, applied);
-        const outUp = Preview.compute(i).output;
-        revertUp();
+        const revertApplied = MarginalAnalyzer.applyDeltaInPlace(i, m.key, { kind: applied.kind, value: -applied.value });
+        const outWithout = Preview.compute(i).output;
+        revertApplied();
 
-        const downApplied = { kind: applied.kind, value: -applied.value };
-        const revertDown = MarginalAnalyzer.applyDeltaInPlace(i, m.key, downApplied);
-        const outDown = Preview.compute(i).output;
-        revertDown();
-
-        const out2 = (outUp + outDown) / 2;
-        const gain = (outUp - outDown) / 2;
+        const out2 = baseOut;
+        const gain = baseOut - outWithout;
         const pctGain = baseOut !== 0 ? (gain / baseOut) * 100 : 0;
 
         const orig = MarginalAnalyzer.originalDisplay(i, m.key);
@@ -937,25 +935,21 @@ case "disorderDmgPct": {
         });
       }
 
+      applyBaseline();
+
       let bestPctGain = 0;
       for (const row of rows) {
-        if (Number.isFinite(row.pctGain)) {
-          bestPctGain = Math.max(bestPctGain, row.pctGain);
-        }
+        if (Number.isFinite(row.pctGain)) bestPctGain = Math.max(bestPctGain, row.pctGain);
       }
 
       for (const row of rows) {
-        if (bestPctGain > 0) {
-          row.efficiency = (row.pctGain / bestPctGain) * 100;
-        }
+        if (bestPctGain > 0) row.efficiency = (row.pctGain / bestPctGain) * 100;
       }
 
       rows.sort((a, b) => b.pctGain - a.pctGain);
-
       return { base, rows, bestPctGain };
     }
   }
-
   class StorageManager {
     static SAVE_KEY = "zzz_calc_save_v3";
 
@@ -1177,14 +1171,6 @@ case "disorderDmgPct": {
       const mode = (data?.mode ?? "standard");
       const modeEl = this.dom.select("mode");
       if (modeEl) modeEl.value = mode;
-      const clampResMultEl = this.dom.input("clampResMult") || this.dom.select("clampResMult");
-      if (clampResMultEl) {
-        if ((clampResMultEl instanceof HTMLInputElement) && String(clampResMultEl.type).toLowerCase() === "checkbox") {
-          clampResMultEl.checked = !!data?.settings?.clampResMult;
-        } else {
-          clampResMultEl.value = (data?.settings?.clampResMult ? "1" : "0");
-        }
-      }
 
       // Agent
       const agent = data?.agent ?? {};
@@ -1252,7 +1238,6 @@ this._set("penRatioPct", penRatioPct ?? 0);
       this._set("enemyLevel", enemy?.level ?? 70);
       this._set("enemyDef", enemy?.def ?? 0);
 
-      this._set("enemyResAllPct", enemy?.resAllPct ?? 0);
       this._setIfExists("enemyResPhysicalPct", enemy?.resByAttr?.physical ?? "");
       this._setIfExists("enemyResFirePct", enemy?.resByAttr?.fire ?? "");
       this._setIfExists("enemyResIcePct", enemy?.resByAttr?.ice ?? "");
@@ -1447,7 +1432,6 @@ this._set("penRatioPct", penRatioPct ?? 0);
       return {
         jsonName: i.jsonName,
         mode: i.mode,
-        settings: { clampResMult: !!i.settings.clampResMult },
         agent: {
           level: i.agent.level,
           attribute: i.agent.attribute,
@@ -1463,7 +1447,6 @@ this._set("penRatioPct", penRatioPct ?? 0);
         enemy: {
           level: i.enemy.level,
           def: i.enemy.def,
-          resAllPct: i.enemy.resAllPct,
           resByAttr: { ...i.enemy.resByAttr },
           resReductionPct: i.enemy.resReductionPct,
           defReductionPct: i.enemy.defReductionPct,
