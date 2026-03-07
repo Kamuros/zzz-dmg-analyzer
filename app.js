@@ -150,7 +150,7 @@
       i.jsonName = (this.strById("jsonName", "").trim());
       i.mode = /** @type {Inputs["mode"]} */ (mode);
 
-      i.agent.level = Math.max(1, Math.floor(this.numById("agentLevel", 60)));
+      i.agent.level = MathUtil.clamp(Math.floor(this.numById("agentLevel", 60)), 1, 60);
       i.agent.attribute = /** @type {Attribute} */ (this.strById("attribute", "physical"));
       i.agent.atk = Math.max(0, this.readAtk());
 
@@ -185,7 +185,7 @@ i.agent.anomaly.disorderPct = this.numById("disorderDmgPct", 0);
       i.agent.rupture.sheerDmgBonusPct = this.numById("sheerDmgBonusPct", 0);
 
       // Enemy
-      i.enemy.level = Math.max(1, Math.floor(this.numById("enemyLevel", 70)));
+      i.enemy.level = MathUtil.clamp(Math.floor(this.numById("enemyLevel", 70)), 1, 70);
       i.enemy.def = Math.max(0, this.numById("enemyDef", 0));
 
       i.enemy.resByAttr.physical = this.optNumById("enemyResPhysicalPct");
