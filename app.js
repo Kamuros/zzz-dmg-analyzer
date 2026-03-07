@@ -55,6 +55,12 @@
     static fmt1(x) {
       return Number.isFinite(x) ? x.toFixed(1) : "—";
     }
+    static fmtMaybe1(x) {
+      if (!Number.isFinite(x)) return "—";
+      const r = Math.round(x);
+      if (Math.abs(x - r) < 1e-9) return String(r);
+      return x.toFixed(1);
+    }
     // Show 1 decimal only when fractional
     static fmtSmart(x) {
       if (!Number.isFinite(x)) return "—";
@@ -678,19 +684,19 @@ return total;
     static DEFAULTS_BY_KEY = {
       atk: { kind: "flat", value: 0 },
       dmgGenericPct: { kind: "pct", value: 0 },
-      dmgAttrPct: { kind: "pct", value: 0 },
+      dmgAttrPct: { kind: "pct", value: 30 },
       dmgSkillTypePct: { kind: "pct", value: 0 },
-      critRatePct: { kind: "pct", value: 2.4 },
-      critDmgPct: { kind: "pct", value: 4.8 },
-      penRatioPct: { kind: "pct", value: 0 },
-      penFlat: { kind: "flat", value: 9 },
+      critRatePct: { kind: "pct", value: 24 },
+      critDmgPct: { kind: "pct", value: 48 },
+      penRatioPct: { kind: "pct", value: 24 },
+      penFlat: { kind: "flat", value: 0 },
       defReductionPct: { kind: "pct", value: 0 },
       defIgnorePct: { kind: "pct", value: 0 },
-      resReductionPct: { kind: "pct", value: 5 },
-      resIgnorePct: { kind: "pct", value: 5 },
-      dmgTakenPct: { kind: "pct", value: 5 },
-      dmgTakenOtherPct: { kind: "pct", value: 5 },
-      stunPct: { kind: "pct", value: 15 },
+      resReductionPct: { kind: "pct", value: 0 },
+      resIgnorePct: { kind: "pct", value: 0 },
+      dmgTakenPct: { kind: "pct", value: 0 },
+      dmgTakenOtherPct: { kind: "pct", value: 0 },
+      stunPct: { kind: "pct", value: 30 },
       anomProf: { kind: "flat", value: 9 },
       anomDmgPct: { kind: "pct", value: 0 },
       disorderDmgPct: { kind: "pct", value: 5 },
@@ -698,7 +704,7 @@ return total;
       sheerDmgBonusPct: { kind: "pct", value: 0 },
     };
 
-    static ROLL_EFFICIENCY_KEYS = new Set(["critRatePct", "critDmgPct", "anomProf", "penFlat"]);
+    static ROLL_EFFICIENCY_KEYS = new Set();
 
     /** @param {Inputs} i @param {string} key */
     static originalDisplay(i, key) {
@@ -908,16 +914,22 @@ case "disorderDmgPct": {
         let totalVal = orig.value + (applied?.value ?? 0);
         if (m.key === "critRatePct") totalVal = MathUtil.clamp(totalVal, 0, 100);
 
-        const rollGain = MarginalAnalyzer.ROLL_EFFICIENCY_KEYS.has(m.key) ? pctGain : null;
+        let shownOut = out2;
+        let shownGain = gain;
+        let shownPctGain = pctGain;
+        if (m.key === "critRatePct" && totalVal <= orig.value) {
+          shownOut = baseOut;
+          shownGain = 0;
+          shownPctGain = 0;
+        }
 
         rows.push({
           key: m.key,
           label: m.label,
           applied,
-          out2,
-          gain,
-          pctGain,
-          rollGain,
+          out2: shownOut,
+          gain: shownGain,
+          pctGain: shownPctGain,
           efficiency: null,
           origVal: orig.value,
           totalVal,
@@ -925,26 +937,22 @@ case "disorderDmgPct": {
         });
       }
 
-      let bestRollGain = 0;
+      let bestPctGain = 0;
       for (const row of rows) {
-        if (row.rollGain !== null && Number.isFinite(row.rollGain)) {
-          bestRollGain = Math.max(bestRollGain, row.rollGain);
+        if (Number.isFinite(row.pctGain)) {
+          bestPctGain = Math.max(bestPctGain, row.pctGain);
         }
       }
 
       for (const row of rows) {
-        if (row.rollGain !== null && bestRollGain > 0) {
-          row.efficiency = (row.rollGain / bestRollGain) * 100;
+        if (bestPctGain > 0) {
+          row.efficiency = (row.pctGain / bestPctGain) * 100;
         }
       }
 
-      rows.sort((a, b) => {
-        const aScore = (a.rollGain !== null && Number.isFinite(a.rollGain)) ? a.rollGain : a.pctGain;
-        const bScore = (b.rollGain !== null && Number.isFinite(b.rollGain)) ? b.rollGain : b.pctGain;
-        return bScore - aScore;
-      });
+      rows.sort((a, b) => b.pctGain - a.pctGain);
 
-      return { base, rows, bestRollGain };
+      return { base, rows, bestPctGain };
     }
   }
 
@@ -1060,7 +1068,7 @@ case "disorderDmgPct": {
         const tr = this.dom.el("tr");
         
         if (r.efficiency !== null && Number.isFinite(r.efficiency) && Math.abs(r.efficiency - 100) < 1e-9) tr.classList.add("best-row");
-        else if (r.rollGain !== null && r.efficiency !== null && r.efficiency >= 80) tr.classList.add("top-row");
+        else if (r.efficiency !== null && r.efficiency >= 80) tr.classList.add("top-row");
 
         const tdLabel = this.dom.el("td");
         tdLabel.textContent = r.label;
@@ -1083,11 +1091,8 @@ case "disorderDmgPct": {
         const tdPct = this.dom.el("td");
         tdPct.textContent = `${MathUtil.fmtSmart(r.pctGain)}%`;
 
-        const tdRoll = this.dom.el("td");
-        tdRoll.textContent = (r.rollGain === null) ? "—" : `${MathUtil.fmtSmart(r.rollGain)}%`;
-
         const tdEff = this.dom.el("td");
-        tdEff.textContent = (r.efficiency === null) ? "—" : `${MathUtil.fmt0(r.efficiency)}%`;
+        tdEff.textContent = (r.efficiency === null) ? "—" : `${MathUtil.fmtMaybe1(r.efficiency)}%`;
 
         tr.appendChild(tdLabel);
         tr.appendChild(tdOrig);
@@ -1096,7 +1101,6 @@ case "disorderDmgPct": {
         tr.appendChild(tdOut);
         tr.appendChild(tdGain);
         tr.appendChild(tdPct);
-        tr.appendChild(tdRoll);
         tr.appendChild(tdEff);
 
         this.marginalBody.appendChild(tr);
@@ -1173,8 +1177,14 @@ case "disorderDmgPct": {
       const mode = (data?.mode ?? "standard");
       const modeEl = this.dom.select("mode");
       if (modeEl) modeEl.value = mode;
-      const clampResMultEl = this.dom.select("clampResMult");
-      if (clampResMultEl) clampResMultEl.value = (data?.settings?.clampResMult ? "1" : "0");
+      const clampResMultEl = this.dom.input("clampResMult") || this.dom.select("clampResMult");
+      if (clampResMultEl) {
+        if ((clampResMultEl instanceof HTMLInputElement) && String(clampResMultEl.type).toLowerCase() === "checkbox") {
+          clampResMultEl.checked = !!data?.settings?.clampResMult;
+        } else {
+          clampResMultEl.value = (data?.settings?.clampResMult ? "1" : "0");
+        }
+      }
 
       // Agent
       const agent = data?.agent ?? {};
