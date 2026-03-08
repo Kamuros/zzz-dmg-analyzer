@@ -364,6 +364,16 @@
      <div class="card results-card">
       <div class="kpi" id="kpi"></div>
       <div class="hr"></div>
+      <div class="row mt-10">
+       <label>
+        Marginal Mode
+        <select id="marginalMode">
+         <option value="conditional" selected>Conditional / Incremental</option>
+         <option value="isolated">Standalone / Isolated</option>
+        </select>
+       </label>
+       <div class="muted" id="marginalModeHint" style="font-size:12px; max-width:520px;">Conditional mode compares each row after the other table test values are already applied. Isolated mode tests each row from the current build only.</div>
+      </div>
       <div class="table-wrap">
        <table>
         <thead id="marginalHead">
@@ -372,16 +382,16 @@
            <span class="sort-label">Stat</span>
            <span class="sort-arrow"></span>
           </th>
-          <th class="sortable" data-label="Original" data-sort-key="origVal">
-           <span class="sort-label">Original</span>
+          <th class="sortable" data-label="Base (Effective)" data-sort-key="origVal">
+           <span class="sort-label">Base (Effective)</span>
            <span class="sort-arrow"></span>
           </th>
-          <th class="sortable" data-label="Applied" data-sort-key="appliedVal">
-           <span class="sort-label">Applied</span>
+          <th class="sortable" data-label="Test Add" data-sort-key="appliedVal">
+           <span class="sort-label">Test Add</span>
            <span class="sort-arrow"></span>
           </th>
-          <th class="sortable" data-label="Sum" data-sort-key="totalVal">
-           <span class="sort-label">Sum</span>
+          <th class="sortable" data-label="Tested Total" data-sort-key="totalVal">
+           <span class="sort-label">Tested Total</span>
            <span class="sort-arrow"></span>
           </th>
           <th class="sortable" data-label="New Output" data-sort-key="out2">

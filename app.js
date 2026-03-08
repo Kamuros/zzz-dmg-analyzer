@@ -309,7 +309,8 @@ i.agent.anomaly.disorderPct = this.numById("disorderDmgPct", 0);
 i.enemy.isStunned = this.boolSelectById("isStunned");
       i.enemy.stunPct = this.numById("stunPct", 150);
 
-      // Marginal overrides are held in memory only (not in UI inputs)
+      // Marginal settings/overrides are held in memory only (not in UI inputs)
+      i.marginal.mode = /** @type {"conditional"|"isolated"} */ (this.strById("marginalMode", "conditional"));
       i.marginal.customApplied = MarginalAppliedStore.clone();
 
       return i;
@@ -410,6 +411,7 @@ isStunned: false,
           stunPct: 150,
         },
         marginal: {
+          mode: "conditional",
           customApplied: Object.create(null),
         }
       };
@@ -509,8 +511,8 @@ isStunned: false,
       const defPctDown = MathUtil.clamp((Number(i.enemy.defReductionPct || 0) + Number(i.agent.defIgnorePct || 0)) / 100, 0, 1);
       def = def * (1 - defPctDown);
 
-      // PEN Ratio first
-      const ratio = MathUtil.clamp((Number(i.agent.pen.ratioPct) || 0) / 100, 0, 1);
+      // PEN Ratio first (not hard-capped at 100%)
+      const ratio = (Number(i.agent.pen.ratioPct) || 0) / 100;
       def = def * (1 - ratio);
 
       // Flat PEN last
@@ -534,6 +536,33 @@ return total;
     }
   }
   class StandardCalculator {
+    /** @param {Inputs} i @param {string} key @param {number} rawValue */
+    static effectiveDisplay(i, key, rawValue) {
+      if (key === "critRatePct") {
+        const eff = MathUtil.clamp(rawValue, 0, 100);
+        return { primary: eff, secondary: Math.abs(eff - rawValue) > 1e-9 ? `Effective cap: ${MathUtil.fmtSmart(eff)}% • Raw total: ${MathUtil.fmtSmart(rawValue)}%` : "" };
+      }
+      if (key === "defReductionPct" || key === "defIgnorePct") {
+        const defRed = (key === "defReductionPct") ? rawValue : Number(i.enemy.defReductionPct) || 0;
+        const defIgn = (key === "defIgnorePct") ? rawValue : Number(i.agent.defIgnorePct) || 0;
+        const combinedRaw = defRed + defIgn;
+        const combinedEff = MathUtil.clamp(combinedRaw, 0, 100);
+        const secondary = `Eff. combined: ${MathUtil.fmtSmart(combinedEff)}%` + (Math.abs(combinedEff - combinedRaw) > 1e-9 ? ` (Raw ${MathUtil.fmtSmart(combinedRaw)}%)` : "");
+        return { primary: rawValue, secondary };
+      }
+      return { primary: rawValue, secondary: "" };
+    }
+
+    /** @param {number} baseOut @param {number} newOut */
+    static computePctGain(baseOut, newOut) {
+      if (!Number.isFinite(baseOut) || !Number.isFinite(newOut)) return null;
+      if (baseOut === 0) {
+        if (newOut === 0) return 0;
+        return null;
+      }
+      return ((newOut - baseOut) / baseOut) * 100;
+    }
+
     /** @param {Inputs} i */
     static compute(i) {
       const atk = Number(i.agent.atk) || 0;
@@ -598,6 +627,33 @@ return total;
     static inferPrevType(i, currentType) {
       const v = i.agent.anomaly.disorderPrevType;
       return (v && v !== "auto") ? v : currentType;
+    }
+
+    /** @param {Inputs} i @param {string} key @param {number} rawValue */
+    static effectiveDisplay(i, key, rawValue) {
+      if (key === "critRatePct") {
+        const eff = MathUtil.clamp(rawValue, 0, 100);
+        return { primary: eff, secondary: Math.abs(eff - rawValue) > 1e-9 ? `Effective cap: ${MathUtil.fmtSmart(eff)}% • Raw total: ${MathUtil.fmtSmart(rawValue)}%` : "" };
+      }
+      if (key === "defReductionPct" || key === "defIgnorePct") {
+        const defRed = (key === "defReductionPct") ? rawValue : Number(i.enemy.defReductionPct) || 0;
+        const defIgn = (key === "defIgnorePct") ? rawValue : Number(i.agent.defIgnorePct) || 0;
+        const combinedRaw = defRed + defIgn;
+        const combinedEff = MathUtil.clamp(combinedRaw, 0, 100);
+        const secondary = `Eff. combined: ${MathUtil.fmtSmart(combinedEff)}%` + (Math.abs(combinedEff - combinedRaw) > 1e-9 ? ` (Raw ${MathUtil.fmtSmart(combinedRaw)}%)` : "");
+        return { primary: rawValue, secondary };
+      }
+      return { primary: rawValue, secondary: "" };
+    }
+
+    /** @param {number} baseOut @param {number} newOut */
+    static computePctGain(baseOut, newOut) {
+      if (!Number.isFinite(baseOut) || !Number.isFinite(newOut)) return null;
+      if (baseOut === 0) {
+        if (newOut === 0) return 0;
+        return null;
+      }
+      return ((newOut - baseOut) / baseOut) * 100;
     }
 
     /** @param {Inputs} i */
@@ -683,6 +739,33 @@ return total;
   }
 
   class RuptureCalculator {
+    /** @param {Inputs} i @param {string} key @param {number} rawValue */
+    static effectiveDisplay(i, key, rawValue) {
+      if (key === "critRatePct") {
+        const eff = MathUtil.clamp(rawValue, 0, 100);
+        return { primary: eff, secondary: Math.abs(eff - rawValue) > 1e-9 ? `Effective cap: ${MathUtil.fmtSmart(eff)}% • Raw total: ${MathUtil.fmtSmart(rawValue)}%` : "" };
+      }
+      if (key === "defReductionPct" || key === "defIgnorePct") {
+        const defRed = (key === "defReductionPct") ? rawValue : Number(i.enemy.defReductionPct) || 0;
+        const defIgn = (key === "defIgnorePct") ? rawValue : Number(i.agent.defIgnorePct) || 0;
+        const combinedRaw = defRed + defIgn;
+        const combinedEff = MathUtil.clamp(combinedRaw, 0, 100);
+        const secondary = `Eff. combined: ${MathUtil.fmtSmart(combinedEff)}%` + (Math.abs(combinedEff - combinedRaw) > 1e-9 ? ` (Raw ${MathUtil.fmtSmart(combinedRaw)}%)` : "");
+        return { primary: rawValue, secondary };
+      }
+      return { primary: rawValue, secondary: "" };
+    }
+
+    /** @param {number} baseOut @param {number} newOut */
+    static computePctGain(baseOut, newOut) {
+      if (!Number.isFinite(baseOut) || !Number.isFinite(newOut)) return null;
+      if (baseOut === 0) {
+        if (newOut === 0) return 0;
+        return null;
+      }
+      return ((newOut - baseOut) / baseOut) * 100;
+    }
+
     /** @param {Inputs} i */
     static compute(i) {
       const sheerForce = Math.max(0, Number(i.agent.rupture.sheerForce) || 0);
@@ -709,6 +792,33 @@ return total;
   }
 
   class Preview {
+    /** @param {Inputs} i @param {string} key @param {number} rawValue */
+    static effectiveDisplay(i, key, rawValue) {
+      if (key === "critRatePct") {
+        const eff = MathUtil.clamp(rawValue, 0, 100);
+        return { primary: eff, secondary: Math.abs(eff - rawValue) > 1e-9 ? `Effective cap: ${MathUtil.fmtSmart(eff)}% • Raw total: ${MathUtil.fmtSmart(rawValue)}%` : "" };
+      }
+      if (key === "defReductionPct" || key === "defIgnorePct") {
+        const defRed = (key === "defReductionPct") ? rawValue : Number(i.enemy.defReductionPct) || 0;
+        const defIgn = (key === "defIgnorePct") ? rawValue : Number(i.agent.defIgnorePct) || 0;
+        const combinedRaw = defRed + defIgn;
+        const combinedEff = MathUtil.clamp(combinedRaw, 0, 100);
+        const secondary = `Eff. combined: ${MathUtil.fmtSmart(combinedEff)}%` + (Math.abs(combinedEff - combinedRaw) > 1e-9 ? ` (Raw ${MathUtil.fmtSmart(combinedRaw)}%)` : "");
+        return { primary: rawValue, secondary };
+      }
+      return { primary: rawValue, secondary: "" };
+    }
+
+    /** @param {number} baseOut @param {number} newOut */
+    static computePctGain(baseOut, newOut) {
+      if (!Number.isFinite(baseOut) || !Number.isFinite(newOut)) return null;
+      if (baseOut === 0) {
+        if (newOut === 0) return 0;
+        return null;
+      }
+      return ((newOut - baseOut) / baseOut) * 100;
+    }
+
     /** @param {Inputs} i */
     static compute(i) {
       const std = StandardCalculator.compute(i);
@@ -989,6 +1099,33 @@ return total;
       return () => {};
     }
 
+    /** @param {Inputs} i @param {string} key @param {number} rawValue */
+    static effectiveDisplay(i, key, rawValue) {
+      if (key === "critRatePct") {
+        const eff = MathUtil.clamp(rawValue, 0, 100);
+        return { primary: eff, secondary: Math.abs(eff - rawValue) > 1e-9 ? `Effective cap: ${MathUtil.fmtSmart(eff)}% • Raw total: ${MathUtil.fmtSmart(rawValue)}%` : "" };
+      }
+      if (key === "defReductionPct" || key === "defIgnorePct") {
+        const defRed = (key === "defReductionPct") ? rawValue : Number(i.enemy.defReductionPct) || 0;
+        const defIgn = (key === "defIgnorePct") ? rawValue : Number(i.agent.defIgnorePct) || 0;
+        const combinedRaw = defRed + defIgn;
+        const combinedEff = MathUtil.clamp(combinedRaw, 0, 100);
+        const secondary = `Eff. combined: ${MathUtil.fmtSmart(combinedEff)}%` + (Math.abs(combinedEff - combinedRaw) > 1e-9 ? ` (Raw ${MathUtil.fmtSmart(combinedRaw)}%)` : "");
+        return { primary: rawValue, secondary };
+      }
+      return { primary: rawValue, secondary: "" };
+    }
+
+    /** @param {number} baseOut @param {number} newOut */
+    static computePctGain(baseOut, newOut) {
+      if (!Number.isFinite(baseOut) || !Number.isFinite(newOut)) return null;
+      if (baseOut === 0) {
+        if (newOut === 0) return 0;
+        return null;
+      }
+      return ((newOut - baseOut) / baseOut) * 100;
+    }
+
     /** @param {Inputs} i */
     static compute(i) {
       const originalByKey = new Map();
@@ -1012,6 +1149,12 @@ return total;
         }
       }
 
+      const marginalMode = i.marginal?.mode === "isolated" ? "isolated" : "conditional";
+      const conditionalBaseInputs = MarginalAnalyzer.cloneInputs(i);
+      if (marginalMode === "conditional") {
+        MarginalAnalyzer.applyManyInPlace(conditionalBaseInputs, explicitOverrides.entries());
+      }
+
       for (const m of StatMeta.list()) {
         if (i.mode === "anomaly" && (m.key === "dmgSkillTypePct" || m.key === "critRatePct" || m.key === "critDmgPct")) continue;
         if (i.mode !== "anomaly" && (m.key === "anomProf" || m.key === "anomDmgPct"  || m.key === "disorderDmgPct")) continue;
@@ -1029,31 +1172,24 @@ return total;
         const applied = MarginalAnalyzer.resolveDelta(m.key, override);
         const orig = originalByKey.get(m.key) ?? { kind: m.kind, value: 0 };
 
-        const others = [];
-        for (const [otherKey, otherDelta] of explicitOverrides.entries()) {
-          if (otherKey === m.key) continue;
-          others.push([otherKey, otherDelta]);
-        }
-
-        const rowBaseInputs = MarginalAnalyzer.cloneInputs(i);
-        MarginalAnalyzer.applyManyInPlace(rowBaseInputs, others);
+        const rowBaseInputs = MarginalAnalyzer.cloneInputs(marginalMode === "conditional" ? conditionalBaseInputs : i);
         const rowBaseOut = Preview.compute(rowBaseInputs).output;
 
         const rowNewInputs = MarginalAnalyzer.cloneInputs(rowBaseInputs);
         MarginalAnalyzer.applyDeltaInPlace(rowNewInputs, m.key, applied);
         const newOut = Preview.compute(rowNewInputs).output;
 
-        let totalVal = orig.value + (applied?.value ?? 0);
-        if (m.key === "critRatePct") totalVal = MathUtil.clamp(totalVal, 0, 100);
+        const rawTotalVal = orig.value + (applied?.value ?? 0);
+        const origDisplay = MarginalAnalyzer.effectiveDisplay(i, m.key, orig.value);
+        const totalDisplay = MarginalAnalyzer.effectiveDisplay(rowNewInputs, m.key, rawTotalVal);
 
-        let gain = newOut - rowBaseOut;
-        let pctGain = rowBaseOut !== 0 ? (gain / rowBaseOut) * 100 : 0;
         let shownOut = newOut;
+        let gain = newOut - rowBaseOut;
+        let pctGain = MarginalAnalyzer.computePctGain(rowBaseOut, newOut);
 
         if (!Number.isFinite(gain)) gain = 0;
-        if (!Number.isFinite(pctGain)) pctGain = 0;
 
-        if (m.key === "critRatePct" && totalVal <= orig.value) {
+        if (m.key === "critRatePct" && totalDisplay.primary <= origDisplay.primary) {
           shownOut = rowBaseOut;
           gain = 0;
           pctGain = 0;
@@ -1067,8 +1203,12 @@ return total;
           gain,
           pctGain,
           efficiency: null,
-          origVal: orig.value,
-          totalVal,
+          origVal: origDisplay.primary,
+          origValRaw: orig.value,
+          origDisplayNote: origDisplay.secondary,
+          totalVal: totalDisplay.primary,
+          totalValRaw: rawTotalVal,
+          totalDisplayNote: totalDisplay.secondary,
           displayKind: orig.kind,
         });
       }
@@ -1079,7 +1219,7 @@ return total;
       }
 
       for (const row of rows) {
-        if (bestPctGain > 0) row.efficiency = (row.pctGain / bestPctGain) * 100;
+        if (bestPctGain > 0 && Number.isFinite(row.pctGain)) row.efficiency = (row.pctGain / bestPctGain) * 100;
       }
 
       return { base, rows, bestPctGain };
@@ -1192,6 +1332,7 @@ return total;
     renderMarginalTable(i, marginal, sortState) {
       if (!this.marginalBody) return;
       this.dom.clear(this.marginalBody);
+      this.renderMarginalModeHint(i, marginal);
 
       const sortedRows = MarginalSort.sortRows(marginal.rows, sortState);
       const topGain = MetricRanker.top3(marginal.rows, (row) => Number(row.gain));
@@ -1211,13 +1352,13 @@ return total;
         tdLabel.textContent = r.label;
 
         const tdOrig = this.dom.el("td");
-        tdOrig.appendChild(this._statCell(r.origVal, r.displayKind));
+        tdOrig.appendChild(this._statCell(r.origVal, r.displayKind, r.origDisplayNote));
 
         const tdApplied = this.dom.el("td");
         tdApplied.appendChild(this._appliedInputCell(r));
 
         const tdSum = this.dom.el("td");
-        tdSum.appendChild(this._statCell(r.totalVal, r.displayKind));
+        tdSum.appendChild(this._statCell(r.totalVal, r.displayKind, r.totalDisplayNote));
 
         const tdOut = this.dom.el("td");
         tdOut.textContent = MathUtil.fmt0(r.out2);
@@ -1228,7 +1369,7 @@ return total;
         if (gainRank) tdGain.classList.add(gainRank);
 
         const tdPct = this.dom.el("td");
-        tdPct.textContent = `${MathUtil.fmtSmart(r.pctGain)}%`;
+        tdPct.textContent = (r.pctGain === null) ? "∞" : `${MathUtil.fmtSmart(r.pctGain)}%`;
 
         const tdEff = this.dom.el("td");
         tdEff.textContent = (r.efficiency === null) ? "—" : `${MathUtil.fmtMaybe1(r.efficiency)}%`;
@@ -1250,6 +1391,25 @@ return total;
       this.renderMarginalHeader(sortState);
     }
 
+    renderMarginalModeHint(i, marginal) {
+      const hint = this.dom.byId("marginalModeHint");
+      if (!hint) return;
+      const mode = i.marginal?.mode === "isolated" ? "isolated" : "conditional";
+      const hasTestAdds = marginal.rows.some((row) => {
+        const v = Number(row.applied?.value ?? 0);
+        return Number.isFinite(v) && Math.abs(v) > 1e-9;
+      });
+      if (mode === "conditional") {
+        hint.textContent = hasTestAdds
+          ? "Conditional mode measures each row after the other non-zero Test Add values are already applied."
+          : "Conditional mode is selected. It behaves differently only when one or more Test Add values are non-zero."
+      } else {
+        hint.textContent = hasTestAdds
+          ? "Isolated mode measures each row from the current build only. Other Test Add values do not affect that row’s baseline."
+          : "Isolated mode is selected. It behaves differently only when one or more Test Add values are non-zero."
+      }
+    }
+
     /** @param {{key:string, dir:"asc"|"desc"}} sortState */
     renderMarginalHeader(sortState) {
       if (!this.marginalHead) return;
@@ -1268,22 +1428,37 @@ return total;
       });
     }
 
-    _statCell(value, displayKind) {
+    _statCell(value, displayKind, note = "") {
       const wrap = this.dom.el("div");
       wrap.style.display = "flex";
-      wrap.style.gap = "8px";
-      wrap.style.alignItems = "center";
+      wrap.style.flexDirection = "column";
+      wrap.style.gap = "2px";
+
+      const top = this.dom.el("div");
+      top.style.display = "flex";
+      top.style.gap = "8px";
+      top.style.alignItems = "center";
 
       const a = this.dom.el("span");
-      a.className = "muted";
+      a.style.fontWeight = "600";
       a.textContent = MathUtil.fmtSmart(value);
 
       const b = this.dom.el("span");
       b.className = "muted";
       b.textContent = (displayKind === "pct") ? "%" : "";
 
-      wrap.appendChild(a);
-      wrap.appendChild(b);
+      top.appendChild(a);
+      top.appendChild(b);
+      wrap.appendChild(top);
+
+      if (note) {
+        const sub = this.dom.el("div");
+        sub.className = "muted";
+        sub.style.fontSize = "11px";
+        sub.textContent = note;
+        wrap.appendChild(sub);
+      }
+
       return wrap;
     }
 
@@ -1408,8 +1583,9 @@ return total;
 
     /** @param {any} data */
     applyImportedData(data) {
-      // Restore per-row marginal applied deltas
+      // Restore per-row marginal settings/deltas
       MarginalAppliedStore.loadFromData(data);
+      this._setIfExists("marginalMode", data?.marginal?.mode ?? "conditional");
 
       // jsonName + mode
       const jsonNameEl = this.dom.input("jsonName");
@@ -1664,7 +1840,7 @@ return total;
         el.addEventListener("change", () => this.requestRefresh());
       });
 
-      this.dom.byId("marginalBody")?.addEventListener("change", (e) => {
+      const handleAppliedDeltaEdit = (e) => {
         const t = /** @type {HTMLElement} */ (e.target);
         if (!(t instanceof HTMLInputElement)) return;
         if (!t.classList.contains("appliedDelta")) return;
@@ -1681,7 +1857,9 @@ return total;
           MarginalAppliedStore.set(key, kind, v);
         }
         this.requestRefresh();
-      });
+      };
+      this.dom.byId("marginalBody")?.addEventListener("input", handleAppliedDeltaEdit);
+      this.dom.byId("marginalBody")?.addEventListener("change", handleAppliedDeltaEdit);
 
       this.dom.byId("marginalHead")?.addEventListener("click", (e) => {
         const target = /** @type {HTMLElement} */ (e.target);
@@ -1725,6 +1903,7 @@ return total;
           stunPct: i.enemy.stunPct,
         },
         marginal: {
+          mode: i.marginal.mode,
           customApplied: MarginalAppliedStore.clone(),
         },
       };
