@@ -135,7 +135,7 @@
       const unique = [];
       for (const row of rows) {
         const v = getter(row);
-        if (!Number.isFinite(v)) continue;
+        if (!Number.isFinite(v) || v <= 0) continue;
         if (!unique.some((x) => Math.abs(x - v) < 1e-9)) unique.push(v);
       }
       unique.sort((a, b) => b - a);
@@ -144,11 +144,31 @@
 
     /** @param {number|null} value @param {number[]} top */
     static rankClass(value, top) {
-      if (!Number.isFinite(value)) return "";
+      if (!Number.isFinite(value) || value <= 0) return "";
       for (let idx = 0; idx < top.length; idx++) {
         if (Math.abs(value - top[idx]) < 1e-9) return `rank-${idx + 1}`;
       }
       return "";
+    }
+
+    /** @param {string} rankClass */
+    static rankNumber(rankClass) {
+      const m = /^rank-(\d+)$/.exec(String(rankClass || ""));
+      return m ? Number(m[1]) : Infinity;
+    }
+
+    /** @param {string[]} rankClasses */
+    static bestRankClass(rankClasses) {
+      let best = "";
+      let bestNum = Infinity;
+      for (const cls of rankClasses) {
+        const n = MetricRanker.rankNumber(cls);
+        if (n < bestNum) {
+          bestNum = n;
+          best = cls;
+        }
+      }
+      return best;
     }
   }
 
@@ -167,13 +187,20 @@
       const compact = s.replace(/\s+/g, "");
       const parts = compact.split("+");
       let total = 0;
-      for (const part of parts) {
-        if (!part) return fallback;
+      let sawValidPart = false;
+      for (let idx = 0; idx < parts.length; idx++) {
+        const part = parts[idx];
+        const isLast = idx === parts.length - 1;
+        if (!part) {
+          if (isLast && sawValidPart) break;
+          return fallback;
+        }
         const n = Number(part);
         if (!Number.isFinite(n)) return fallback;
         total += n;
+        sawValidPart = true;
       }
-      return total;
+      return sawValidPart ? total : fallback;
     }
 
     numById(id, fallback = 0) {
@@ -1174,8 +1201,10 @@ return total;
         const r = sortedRows[idx];
         const tr = this.dom.el("tr");
 
+        const gainRank = MetricRanker.rankClass(Number(r.gain), topGain);
         const effRank = MetricRanker.rankClass(Number(r.efficiency), topEff);
-        if (effRank) tr.classList.add(`row-${effRank}`);
+        const rowRank = MetricRanker.bestRankClass([gainRank, effRank]);
+        if (rowRank) tr.classList.add(`row-${rowRank}`);
         else if (r.efficiency !== null && Number.isFinite(r.efficiency) && r.efficiency >= 80) tr.classList.add("top-row");
 
         const tdLabel = this.dom.el("td");
@@ -1196,7 +1225,6 @@ return total;
         const tdGain = this.dom.el("td");
         tdGain.textContent = MathUtil.fmt0(r.gain);
         tdGain.classList.add("metric-cell", "metric-gain");
-        const gainRank = MetricRanker.rankClass(Number(r.gain), topGain);
         if (gainRank) tdGain.classList.add(gainRank);
 
         const tdPct = this.dom.el("td");

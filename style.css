@@ -294,31 +294,23 @@ tr.row-rank-2 td:first-child {
 }
 
 tr.row-rank-3 td:first-child {
+  font-weight: 600;
   border-left: 5px solid #c2d8ff;
 }
 
 .metric-cell.rank-1 {
   font-weight: 700;
   color: #1f5ed6;
-  background: #e9f2ff;
-  box-shadow: inset 0 0 0 1px #bfd7ff;
-  border-radius: 10px;
 }
 
 .metric-cell.rank-2 {
   font-weight: 700;
   color: #2c6abf;
-  background: #f1f7ff;
-  box-shadow: inset 0 0 0 1px #d1e2ff;
-  border-radius: 10px;
 }
 
 .metric-cell.rank-3 {
   font-weight: 600;
   color: #4c78b8;
-  background: #f7fbff;
-  box-shadow: inset 0 0 0 1px #e0ebff;
-  border-radius: 10px;
 }
 
 tbody tr:nth-child(even) { background: #fafafa; }
