@@ -1875,26 +1875,50 @@ return total;
         el.addEventListener("change", () => this.requestRefresh());
       });
 
-      const handleAppliedDeltaEdit = (e) => {
+      const syncAppliedDeltaValue = (e) => {
         const t = /** @type {HTMLElement} */ (e.target);
-        if (!(t instanceof HTMLInputElement)) return;
-        if (!t.classList.contains("appliedDelta")) return;
+        if (!(t instanceof HTMLInputElement)) return null;
+        if (!t.classList.contains("appliedDelta")) return null;
 
         const key = String(t.dataset.key || "");
         const kind = (t.dataset.kind === "flat") ? "flat" : "pct";
-        const v = Number(t.value);
+        if (!key) return null;
 
-        if (!key) return;
+        const raw = String(t.value ?? "").trim();
+        if (raw === "") {
+          MarginalAppliedStore.set(key, kind, 0);
+          return { input: t, key, kind, value: 0 };
+        }
 
+        const v = Number(raw);
         if (!Number.isFinite(v)) {
           MarginalAppliedStore.set(key, kind, NaN);
-        } else {
-          MarginalAppliedStore.set(key, kind, v);
+          return { input: t, key, kind, value: NaN };
         }
-        this.requestRefresh();
+
+        MarginalAppliedStore.set(key, kind, v);
+        return { input: t, key, kind, value: v };
       };
-      this.dom.byId("marginalBody")?.addEventListener("input", handleAppliedDeltaEdit);
-      this.dom.byId("marginalBody")?.addEventListener("change", handleAppliedDeltaEdit);
+
+      this.dom.byId("marginalBody")?.addEventListener("input", (e) => {
+        syncAppliedDeltaValue(e);
+      });
+      this.dom.byId("marginalBody")?.addEventListener("change", (e) => {
+        const result = syncAppliedDeltaValue(e);
+        if (!result) return;
+        this.requestRefresh();
+      });
+      this.dom.byId("marginalBody")?.addEventListener("focusout", (e) => {
+        const result = syncAppliedDeltaValue(e);
+        if (!result) return;
+        this.requestRefresh();
+      });
+      this.dom.byId("marginalBody")?.addEventListener("keydown", (e) => {
+        const t = /** @type {HTMLElement} */ (e.target);
+        if (!(t instanceof HTMLInputElement)) return;
+        if (!t.classList.contains("appliedDelta")) return;
+        if (e.key === "Enter") t.blur();
+      });
 
       this.dom.byId("marginalHead")?.addEventListener("click", (e) => {
         const target = /** @type {HTMLElement} */ (e.target);

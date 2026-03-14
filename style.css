@@ -1,6 +1,7 @@
 :root {
   --b: #ddd;
   --muted: #666;
+  --uniform-form-col: 180px;
 }
 
 * {
@@ -115,9 +116,14 @@ h2 { margin: 0 0 10px; font-size: 20px; }
 }
 
 .form-row.cols-1 { grid-template-columns: minmax(0, 1fr); }
-.form-row.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.form-row.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.form-row.cols-2 { grid-template-columns: repeat(2, minmax(0, var(--uniform-form-col))); }
+.form-row.cols-3 { grid-template-columns: repeat(3, minmax(0, var(--uniform-form-col))); }
 .form-row.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+.panel-left .form-row.cols-2,
+.panel-left .form-row.cols-3 {
+  justify-content: start;
+}
 
 @media (max-width: 1480px) {
   .app-layout {
