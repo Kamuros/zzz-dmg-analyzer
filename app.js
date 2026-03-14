@@ -241,7 +241,10 @@
       return v === "1" || v === "true" || v === "yes" || v === "on";
     }
     readAtk() {
-      return Math.max(0, this.numById("atk", 0));
+      const shownAtk = Math.max(0, this.numById("atk", 0));
+      const baseAtk = Math.max(0, this.numById("baseAtk", 0));
+      const atkPct = Math.max(0, this.numById("atkPct", 0));
+      return shownAtk + (baseAtk * atkPct / 100);
     }
 
     /** @returns {Inputs} */
@@ -256,6 +259,9 @@
 
       i.agent.level = MathUtil.clamp(Math.floor(this.numById("agentLevel", 60)), 1, 60);
       i.agent.attribute = /** @type {Attribute} */ (this.strById("attribute", "physical"));
+      i.agent.atkInput = Math.max(0, this.numById("atk", 0));
+      i.agent.baseAtk = Math.max(0, this.numById("baseAtk", 0));
+      i.agent.atkPct = Math.max(0, this.numById("atkPct", 0));
       i.agent.atk = Math.max(0, this.readAtk());
 
       i.agent.crit.rate = MathUtil.clamp(this.numById("critRatePct", 0) / 100, 0, 1);
@@ -375,6 +381,9 @@ i.enemy.isStunned = this.boolSelectById("isStunned");
           level: 60,
           attribute: "physical",
           atk: 0,
+          atkInput: 0,
+          baseAtk: 0,
+          atkPct: 0,
           crit: { rate: 0.05, dmg: 0.50 },
           dmgBuckets: { generic: 0, attribute: 0, skillType: 0, other: 0 },
           pen: { ratioPct: 0, flat: 0 },
@@ -1609,8 +1618,10 @@ return total;
 
       // ATK
       const atkEl = this.dom.input("atk");
-      const atkValue = (agent?.atk ?? 0);
+      const atkValue = (agent?.atkInput ?? agent?.atk ?? 0);
       if (atkEl) atkEl.value = String(atkValue);
+      this._setIfExists("baseAtk", agent?.baseAtk ?? 0);
+      this._setIfExists("atkPct", agent?.atkPct ?? 0);
 
       const crEl = this.dom.input("critRatePct");
       if (crEl) crEl.value = String((Number(crit?.rate ?? 0) * 100));
@@ -1881,6 +1892,9 @@ return total;
           level: i.agent.level,
           attribute: i.agent.attribute,
           atk: i.agent.atk,
+          atkInput: i.agent.atkInput,
+          baseAtk: i.agent.baseAtk,
+          atkPct: i.agent.atkPct,
           crit: { rate: i.agent.crit.rate, dmg: i.agent.crit.dmg },
           dmgBuckets: { ...i.agent.dmgBuckets },
           pen: { ratioPct: i.agent.pen.ratioPct, flat: i.agent.pen.flat },
