@@ -258,7 +258,7 @@
        Advanced
       </summary>
       <div class="form mt-12_5">
-       <div class="form-row cols-2">
+       <div class="form-row cols-3 advanced-atk-row">
         <label>
          Base ATK
          <input data-number-only="true" id="baseAtk" min="0" step="0.1" type="number" value="0"/>
@@ -266,6 +266,10 @@
         <label>
          ATK (%)
          <input data-number-only="true" id="atkPct" min="0" step="0.1" type="number" value="0"/>
+        </label>
+        <label>
+         Flat ATK from ATK%
+         <input id="atkPctFlatGain" readonly="" tabindex="-1" type="text" value="0"/>
         </label>
        </div>
        <div class="form-row cols-3">

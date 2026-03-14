@@ -240,13 +240,6 @@
       const v = String((/** @type {any} */ (el)).value ?? "").toLowerCase();
       return v === "1" || v === "true" || v === "yes" || v === "on";
     }
-    readAtk() {
-      const shownAtk = Math.max(0, this.numById("atk", 0));
-      const baseAtk = Math.max(0, this.numById("baseAtk", 0));
-      const atkPct = Math.max(0, this.numById("atkPct", 0));
-      return shownAtk + (baseAtk * atkPct / 100);
-    }
-
     /** @returns {Inputs} */
     read() {
       const mode = this.strById("mode", "standard");
@@ -262,7 +255,7 @@
       i.agent.atkInput = Math.max(0, this.numById("atk", 0));
       i.agent.baseAtk = Math.max(0, this.numById("baseAtk", 0));
       i.agent.atkPct = Math.max(0, this.numById("atkPct", 0));
-      i.agent.atk = Math.max(0, this.readAtk());
+      i.agent.atk = Math.max(0, i.agent.atkInput);
 
       i.agent.crit.rate = MathUtil.clamp(this.numById("critRatePct", 0) / 100, 0, 1);
       i.agent.crit.dmg = Math.max(0, this.numById("critDmgPct", 0) / 100);
@@ -1303,6 +1296,7 @@ return total;
       this.kpi = dom.byId("kpi");
       this.marginalBody = dom.byId("marginalBody");
       this.marginalHead = dom.byId("marginalHead");
+      this.atkPctFlatGain = dom.input("atkPctFlatGain");
     }
 
     applyModeVisibility(mode) {
@@ -1336,11 +1330,26 @@ return total;
       }
     }
 
+
+    /** @param {Inputs} i */
+    renderAtkPctFlatGain(i) {
+      if (!this.atkPctFlatGain) return;
+      const baseAtk = Math.max(0, Number(i.agent.baseAtk) || 0);
+      const atkPct = Math.max(0, Number(i.agent.atkPct) || 0);
+      const flatGain = baseAtk * atkPct / 100;
+      this.atkPctFlatGain.value = MathUtil.fmtSmart(flatGain);
+    }
+
     /** @param {Inputs} i @param {ReturnType<typeof MarginalAnalyzer.compute>} marginal @param {{key:string, dir:"asc"|"desc"}} sortState */
     renderMarginalTable(i, marginal, sortState) {
       if (!this.marginalBody) return;
       this.dom.clear(this.marginalBody);
       this.renderMarginalModeHint(i, marginal);
+
+      const activeEl = document.activeElement instanceof HTMLInputElement ? document.activeElement : null;
+      const activeAppliedKey = activeEl?.classList.contains("appliedDelta") ? String(activeEl.dataset.key || "") : "";
+      const activeSelectionStart = activeEl?.classList.contains("appliedDelta") ? (activeEl.selectionStart ?? null) : null;
+      const activeSelectionEnd = activeEl?.classList.contains("appliedDelta") ? (activeEl.selectionEnd ?? null) : null;
 
       const sortedRows = MarginalSort.sortRows(marginal.rows, sortState);
       const topGain = MetricRanker.top3(marginal.rows, (row) => Number(row.gain));
@@ -1397,6 +1406,18 @@ return total;
       }
 
       this.renderMarginalHeader(sortState);
+
+      if (activeAppliedKey) {
+        const nextInput = /** @type {HTMLInputElement|null} */ (this.marginalBody.querySelector(`input.appliedDelta[data-key="${CSS.escape(activeAppliedKey)}"]`));
+        if (nextInput) {
+          nextInput.focus({ preventScroll: true });
+          if (activeSelectionStart !== null && activeSelectionEnd !== null) {
+            try {
+              nextInput.setSelectionRange(activeSelectionStart, activeSelectionEnd);
+            } catch {}
+          }
+        }
+      }
     }
 
     renderMarginalModeHint(i, marginal) {
@@ -1481,7 +1502,9 @@ return total;
 
       const input = this.dom.el("input");
       input.className = "appliedDelta";
-      input.type = "number";
+      input.type = "text";
+      input.inputMode = "decimal";
+      input.dataset.numberOnly = "true";
       input.style.width = "110px";
       input.style.padding = "6px 8px";
       input.style.borderRadius = "10px";
@@ -1493,6 +1516,7 @@ return total;
 
       input.dataset.key = row.key;
       input.dataset.kind = kind;
+      NumericInputGuard.bind(input);
 
       const unit = this.dom.el("span");
       unit.className = "muted";
@@ -1759,6 +1783,7 @@ return total;
       }
 
       this.renderer.renderKpi(kpiItems);
+      this.renderer.renderAtkPctFlatGain(i);
 
       const marginal = MarginalAnalyzer.compute(i);
       this.renderer.renderMarginalTable(i, marginal, this.sortState);

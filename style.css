@@ -111,7 +111,7 @@ h2 { margin: 0 0 10px; font-size: 20px; }
 
 .form-row {
   display: grid;
-  gap: 12.5px 15px;
+  gap: 10px 12px;
 }
 
 .form-row.cols-1 { grid-template-columns: minmax(0, 1fr); }
@@ -414,4 +414,16 @@ select:disabled {
   .enemy-row-5 {
     max-width: 100%;
   }
+}
+
+
+.advanced-atk-row input[readonly] {
+  background: #f3f6fb;
+  color: #35527a;
+  font-weight: 600;
+  cursor: default;
+}
+
+.appliedDelta {
+  caret-color: auto;
 }
