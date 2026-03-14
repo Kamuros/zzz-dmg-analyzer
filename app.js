@@ -1534,9 +1534,18 @@ return total;
       "penRatioPct","penFlat","defIgnorePct","resIgnorePct","anomProf","anomDmgPct","sheerForce","sheerDmgBonusPct"
     ]);
 
+    static MINUS_ALLOWED_IDS = new Set([
+      "enemyResPhysicalPct","enemyResFirePct","enemyResIcePct","enemyResElectricPct","enemyResEtherPct"
+    ]);
+
     /** @param {HTMLInputElement} el */
     static allowsPlus(el) {
       return el.dataset.allowPlus === "true" || NumericInputGuard.PLUS_ALLOWED_IDS.has(el.id);
+    }
+
+    /** @param {HTMLInputElement} el */
+    static allowsMinus(el) {
+      return el.dataset.allowMinus === "true" || NumericInputGuard.MINUS_ALLOWED_IDS.has(el.id);
     }
 
     /** @param {HTMLInputElement} el */
@@ -1547,6 +1556,7 @@ return total;
     /** @param {HTMLInputElement} el @param {string} value */
     static sanitize(el, value) {
       const allowPlus = NumericInputGuard.allowsPlus(el);
+      const allowMinus = NumericInputGuard.allowsMinus(el);
       const integerOnly = NumericInputGuard.integerOnly(el);
       let s = String(value ?? "");
       s = s.replace(/,/g, "").replace(/\s+/g, allowPlus ? "" : "");
@@ -1567,16 +1577,21 @@ return total;
         if (s.startsWith("+")) s = s.slice(1);
         return s;
       }
-      s = s.replace(/[^0-9.]/g, "");
+      s = allowMinus ? s.replace(/[^0-9.-]/g, "") : s.replace(/[^0-9.]/g, "");
+      if (allowMinus) {
+        s = s.replace(/(?!^)-/g, "");
+      }
       if (integerOnly) return s.replace(/\./g, "");
-      const firstDot = s.indexOf(".");
+      const startIndex = (allowMinus && s.startsWith("-")) ? 1 : 0;
+      const firstDot = s.indexOf(".", startIndex);
       if (firstDot === -1) return s;
       return s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, "");
     }
 
     /** @param {HTMLInputElement} el */
     static bind(el) {
-      const disallowKeys = new Set(["e", "E", "-", ","]);
+      const disallowKeys = new Set(["e", "E", ","]);
+      if (!NumericInputGuard.allowsMinus(el)) disallowKeys.add("-");
       if (!NumericInputGuard.allowsPlus(el)) disallowKeys.add("+");
       el.addEventListener("keydown", (e) => {
         if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1585,9 +1600,13 @@ return total;
       el.addEventListener("beforeinput", (e) => {
         const data = e.data;
         if (!data) return;
-        const allowedPattern = NumericInputGuard.allowsPlus(el)
+        const allowPlus = NumericInputGuard.allowsPlus(el);
+        const allowMinus = NumericInputGuard.allowsMinus(el);
+        const allowedPattern = allowPlus
           ? (NumericInputGuard.integerOnly(el) ? /^[0-9+]+$/ : /^[0-9.+]+$/)
-          : (NumericInputGuard.integerOnly(el) ? /^[0-9]+$/ : /^[0-9.]+$/);
+          : allowMinus
+            ? (NumericInputGuard.integerOnly(el) ? /^[0-9-]+$/ : /^[0-9.-]+$/)
+            : (NumericInputGuard.integerOnly(el) ? /^[0-9]+$/ : /^[0-9.]+$/);
         if (!allowedPattern.test(data)) e.preventDefault();
       });
       el.addEventListener("input", () => {
