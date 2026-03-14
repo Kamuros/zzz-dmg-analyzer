@@ -1141,19 +1141,13 @@ return total;
       ]);
 
       /** @type {Map<string, {kind:"pct"|"flat", value:number}>} */
-      const explicitOverrides = new Map();
+      const resolvedDeltas = new Map();
       for (const m of StatMeta.list()) {
         const override = MarginalAppliedStore.get(m.key);
-        if (override && Number.isFinite(override.value)) {
-          explicitOverrides.set(m.key, MarginalAnalyzer.resolveDelta(m.key, override));
-        }
+        resolvedDeltas.set(m.key, MarginalAnalyzer.resolveDelta(m.key, override));
       }
 
       const marginalMode = i.marginal?.mode === "isolated" ? "isolated" : "conditional";
-      const conditionalBaseInputs = MarginalAnalyzer.cloneInputs(i);
-      if (marginalMode === "conditional") {
-        MarginalAnalyzer.applyManyInPlace(conditionalBaseInputs, explicitOverrides.entries());
-      }
 
       for (const m of StatMeta.list()) {
         if (i.mode === "anomaly" && (m.key === "dmgSkillTypePct" || m.key === "critRatePct" || m.key === "critDmgPct")) continue;
@@ -1168,11 +1162,16 @@ return total;
 
         if (i.mode === "standard" && (m.key === "anomDmgPct"  || m.key === "disorderDmgPct")) continue;
 
-        const override = MarginalAppliedStore.get(m.key);
-        const applied = MarginalAnalyzer.resolveDelta(m.key, override);
+        const applied = resolvedDeltas.get(m.key) ?? MarginalAnalyzer.defaultApplied(m.key);
         const orig = originalByKey.get(m.key) ?? { kind: m.kind, value: 0 };
 
-        const rowBaseInputs = MarginalAnalyzer.cloneInputs(marginalMode === "conditional" ? conditionalBaseInputs : i);
+        const rowBaseInputs = MarginalAnalyzer.cloneInputs(i);
+        if (marginalMode === "conditional") {
+          for (const [otherKey, otherDelta] of resolvedDeltas.entries()) {
+            if (otherKey === m.key) continue;
+            MarginalAnalyzer.applyDeltaInPlace(rowBaseInputs, otherKey, otherDelta);
+          }
+        }
         const rowBaseOut = Preview.compute(rowBaseInputs).output;
 
         const rowNewInputs = MarginalAnalyzer.cloneInputs(rowBaseInputs);
