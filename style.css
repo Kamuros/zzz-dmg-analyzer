@@ -1,7 +1,7 @@
 :root {
   --b: #ddd;
   --muted: #666;
-  --uniform-form-col: 180px;
+  --uniform-form-col: 156px;
 }
 
 * {
@@ -48,7 +48,7 @@ h2 { margin: 0 0 10px; font-size: 20px; }
 /* Layout container improved for large monitors */
 .app-layout {
   display: grid;
-  grid-template-columns: minmax(460px, 40%) minmax(0, 1fr);
+  grid-template-columns: minmax(360px, 34%) minmax(0, 1fr);
   gap: 20px;
   align-items: start;
 }
@@ -115,11 +115,12 @@ h2 { margin: 0 0 10px; font-size: 20px; }
   gap: 10px 12px;
 }
 
-.form-row.cols-1 { grid-template-columns: minmax(0, 1fr); }
+.form-row.cols-1 { grid-template-columns: minmax(0, var(--uniform-form-col)); }
 .form-row.cols-2 { grid-template-columns: repeat(2, minmax(0, var(--uniform-form-col))); }
 .form-row.cols-3 { grid-template-columns: repeat(3, minmax(0, var(--uniform-form-col))); }
 .form-row.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
+.panel-left .form-row.cols-1,
 .panel-left .form-row.cols-2,
 .panel-left .form-row.cols-3 {
   justify-content: start;
@@ -261,7 +262,8 @@ th {
   position: sticky;
   top: 0;
   background: #fff;
-  z-index: 1;
+  z-index: 20;
+  box-shadow: inset 0 -1px 0 #eee;
 }
 
 th.sortable {
@@ -325,6 +327,7 @@ tr.row-rank-3 td:first-child {
   color: #4c78b8;
 }
 
+tbody td { position: relative; z-index: 0; }
 tbody tr:nth-child(even) { background: #fafafa; }
 tbody tr:hover {
   background: #eef4ff;
@@ -408,10 +411,10 @@ select:disabled {
 
 
 
-.agent-row-1 { max-width: 70%; }
-.agent-row-5 { max-width: 32%; }
+.agent-row-1,
+.agent-row-5,
 .enemy-row-4,
-.enemy-row-5 { max-width: 70%; }
+.enemy-row-5 { max-width: none; }
 
 @media (max-width: 1240px) {
   .agent-row-1,
@@ -432,4 +435,14 @@ select:disabled {
 
 .appliedDelta {
   caret-color: auto;
+}
+
+
+.top-controls-row > * {
+  flex: 0 0 auto;
+}
+
+.lang-switch-wrap {
+  min-width: 156px;
+  max-width: 156px;
 }

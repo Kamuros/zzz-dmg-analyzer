@@ -76,6 +76,328 @@
     // Keep Disorder logic for future, but hide from UI for now.
     static SHOW_DISORDER_UI = false;
   }
+  class I18n {
+    static STORAGE_KEY = "zzz_calc_lang_v1";
+    static current = "en";
+
+    static STRINGS = {
+      en: {
+        "title.app": "Zenless Zone Zero: Damage Inputs + “Diminishing Returns” Analyzer V1.0",
+        "ui.language": "Language",
+        "label.mode": "Mode",
+        "mode.standard": "Standard",
+        "mode.anomaly": "Anomaly",
+        "mode.rupture": "Rupture",
+        "button.save": "Save",
+        "button.load": "Load",
+        "button.exportJson": "Export JSON",
+        "button.importJson": "Import JSON",
+        "button.reset": "Reset",
+        "section.agentStats": "Agent Stats",
+        "section.agentStatsAnomaly": "Agent Stats: Anomaly",
+        "section.agentStatsRupture": "Agent Stats: Rupture",
+        "section.advanced": "Advanced",
+        "section.enemy": "Enemy",
+        "section.outputs": "Outputs + Marginal Value",
+        "label.agentLevel": "Agent Level",
+        "label.attribute": "Attribute",
+        "attr.physical": "Physical",
+        "attr.fire": "Fire",
+        "attr.ice": "Ice",
+        "attr.electric": "Electric",
+        "attr.ether": "Ether",
+        "label.atk": "ATK",
+        "label.critRatePct": "Crit Rate (%)",
+        "label.critDmgPct": "Crit DMG (%)",
+        "label.dmgGenericPct": "Generic DMG (%)",
+        "label.dmgAttrPct": "Attribute DMG (%)",
+        "label.dmgSkillTypePct": "Skill DMG (%)",
+        "label.dmgOtherPct": "Other DMG (%)",
+        "label.penRatioPct": "PEN Ratio (%)",
+        "label.penFlat": "PEN",
+        "label.defIgnorePct": "DEF Ignore (%)",
+        "label.resIgnorePct": "RES Ignore (%)",
+        "label.skillMultPct": "Skill Multiplier (%)",
+        "label.anomType": "Anomaly Type",
+        "option.auto": "Auto",
+        "anom.assault": "Assault (Physical)",
+        "anom.burn": "Burn (Fire)",
+        "anom.shock": "Shock (Electric)",
+        "anom.shatter": "Shatter (Ice)",
+        "anom.corruption": "Corruption (Ether)",
+        "label.anomProf": "Anomaly Proficiency",
+        "label.anomDmgPct": "Anomaly DMG (%)",
+        "label.disorderDmgPct": "Disorder DMG (%)",
+        "label.anomTickCount": "Tick Count (Override)",
+        "label.anomTickIntervalSec": "Tick Interval (Sec, Override)",
+        "label.disorderPrevType": "Disorder: Previous Anomaly",
+        "option.autoCurrentAnomaly": "Auto (Current Anomaly Type)",
+        "anom.short.burn": "Burn",
+        "anom.short.shock": "Shock",
+        "anom.short.corruption": "Corruption",
+        "anom.short.shatter": "Frozen (Ice)",
+        "anom.short.assault": "Flinch (Physical)",
+        "label.disorderTimePassedSec": "Disorder: Time Passed (Sec)",
+        "label.sheerForce": "Sheer Force",
+        "label.sheerDmgBonusPct": "Sheer DMG (%)",
+        "label.baseAtk": "Base ATK",
+        "label.atkPct": "ATK (%)",
+        "label.atkPctFlatGain": "Gained ATK",
+        "label.anomAllowCrit": "Allow Anomaly Crit",
+        "option.off": "Off",
+        "option.on": "On",
+        "label.anomCritRatePct": "Anomaly Crit Rate (%)",
+        "label.anomCritDmgPct": "Anomaly Crit DMG (%)",
+        "label.enemyLevel": "Enemy Level",
+        "label.enemyDef": "Enemy DEF",
+        "label.defReductionPct": "DEF Reduction (%)",
+        "label.enemyResPhysicalPct": "Physical RES (%)",
+        "label.enemyResFirePct": "Fire RES (%)",
+        "label.enemyResIcePct": "Ice RES (%)",
+        "label.enemyResElectricPct": "Electric RES (%)",
+        "label.enemyResEtherPct": "Ether RES (%)",
+        "label.resReductionPct": "RES Reduction (%)",
+        "label.dmgTakenPct": "DMG Taken (%)",
+        "label.dmgTakenOtherPct": "Other DMG Taken (%)",
+        "label.isStunned": "Stunned?",
+        "option.no": "No",
+        "option.yes": "Yes",
+        "label.stunPct": "Stunned Multiplier (%)",
+        "label.marginalMode": "Marginal Mode",
+        "marginal.conditional": "Conditional / Incremental",
+        "marginal.isolated": "Standalone / Isolated",
+        "hint.marginalDefault": "Conditional mode compares each row after the other table test values are already applied. Isolated mode tests each row from the current build only.",
+        "hint.marginalConditionalActive": "Conditional mode measures each row after the other non-zero Test Add values are already applied.",
+        "hint.marginalConditionalIdle": "Conditional mode is selected. It behaves differently only when one or more Test Add values are non-zero.",
+        "hint.marginalIsolatedActive": "Isolated mode measures each row from the current build only. Other Test Add values do not affect that row’s baseline.",
+        "hint.marginalIsolatedIdle": "Isolated mode is selected. It behaves differently only when one or more Test Add values are non-zero.",
+        "table.stat": "Stat",
+        "table.baseEffective": "Base (Effective)",
+        "table.testAdd": "Test Add",
+        "table.testedTotal": "Tested Total",
+        "table.newOutput": "New Output",
+        "table.dmgGain": "DMG Gain",
+        "table.dmgGainPct": "DMG Gain (%)",
+        "table.efficiency": "Efficiency",
+        "kpi.expectedDmg": "Expected DMG",
+        "kpi.dmgNonCrit": "DMG (Non-Crit)",
+        "kpi.dmgCrit": "DMG (Crit)",
+        "kpi.anomalyType": "Anomaly Type",
+        "kpi.expectedTickDmg": "Expected Tick DMG",
+        "kpi.anomalyTotal": "Anomaly Total",
+        "kpi.anomalyHit": "Anomaly Hit",
+        "kpi.disorderHit": "Disorder Hit",
+        "note.effectiveCapRaw": "Effective cap: {eff}% • Raw total: {raw}%",
+        "note.effCombined": "Eff. combined: {eff}%",
+        "note.effCombinedRaw": "Eff. combined: {eff}% (Raw {raw}%)",
+        "tooltip.testAddPct": "Smart default increment for this stat. Edit any row to test your own amount.",
+        "tooltip.testAddFlat": "Smart default flat increment for this stat. Edit any row to test your own amount.",
+        "alert.saved": "Saved.",
+        "alert.noSavedBuild": "No saved build found.",
+        "alert.loaded": "Loaded.",
+        "prompt.buildName": "Name this build (for the exported JSON file):",
+        "alert.imported": "Imported.",
+        "error.jsonTooLarge": "JSON file is too large.",
+        "error.invalidJson": "Invalid JSON.",
+        "error.readFile": "Failed to read file.",
+        "label.genericDmg": "Generic DMG",
+        "label.attributeDmg": "Attribute DMG",
+        "label.skillDmg": "Skill DMG",
+        "label.otherDmg": "Other DMG",
+        "label.critRate": "Crit Rate",
+        "label.critDmg": "Crit DMG",
+        "label.penRatio": "PEN Ratio",
+        "label.defReduction": "DEF Reduction",
+        "label.resReduction": "RES Reduction",
+        "label.resIgnore": "RES Ignore",
+        "label.dmgTaken": "DMG Taken",
+        "label.otherDmgTaken": "Other DMG Taken",
+        "label.stunnedMultiplier": "Stunned Multiplier",
+        "label.anomalyDmg": "Anomaly DMG",
+        "label.disorderDmg": "Disorder DMG",
+        "label.sheerDmgBonus": "Sheer DMG Bonus",
+      },
+      ko: {
+        "title.app": "젠레스 존 제로: 피해 입력 + 한계 효율 분석기 V1.0",
+        "ui.language": "언어",
+        "label.mode": "모드",
+        "mode.standard": "일반",
+        "mode.anomaly": "이상",
+        "mode.rupture": "파열",
+        "button.save": "저장",
+        "button.load": "불러오기",
+        "button.exportJson": "JSON 내보내기",
+        "button.importJson": "JSON 가져오기",
+        "button.reset": "초기화",
+        "section.agentStats": "에이전트 스탯",
+        "section.agentStatsAnomaly": "에이전트 스탯: 이상",
+        "section.agentStatsRupture": "에이전트 스탯: 파열",
+        "section.advanced": "고급",
+        "section.enemy": "적",
+        "section.outputs": "출력 + 한계 효율",
+        "label.agentLevel": "에이전트 레벨",
+        "label.attribute": "속성",
+        "attr.physical": "물리",
+        "attr.fire": "화염",
+        "attr.ice": "얼음",
+        "attr.electric": "전기",
+        "attr.ether": "에테르",
+        "label.atk": "공격력",
+        "label.critRatePct": "치명타 확률 (%)",
+        "label.critDmgPct": "치명타 피해 (%)",
+        "label.dmgGenericPct": "일반 피해 (%)",
+        "label.dmgAttrPct": "속성 피해 (%)",
+        "label.dmgSkillTypePct": "스킬 피해 (%)",
+        "label.dmgOtherPct": "기타 피해 (%)",
+        "label.penRatioPct": "관통률 (%)",
+        "label.penFlat": "관통 수치",
+        "label.defIgnorePct": "방어력 무시 (%)",
+        "label.resIgnorePct": "저항 무시 (%)",
+        "label.skillMultPct": "스킬 배율 (%)",
+        "label.anomType": "이상 유형",
+        "option.auto": "자동",
+        "anom.assault": "강타 (물리)",
+        "anom.burn": "화상 (화염)",
+        "anom.shock": "감전 (전기)",
+        "anom.shatter": "쇄빙 (얼음)",
+        "anom.corruption": "침식 (에테르)",
+        "label.anomProf": "이상 마스터리",
+        "label.anomDmgPct": "이상 피해 (%)",
+        "label.disorderDmgPct": "혼돈 피해 (%)",
+        "label.anomTickCount": "틱 수 (수동 입력)",
+        "label.anomTickIntervalSec": "틱 간격 (초, 수동 입력)",
+        "label.disorderPrevType": "혼돈: 기존 이상",
+        "option.autoCurrentAnomaly": "자동 (현재 이상 기준)",
+        "anom.short.burn": "화상",
+        "anom.short.shock": "감전",
+        "anom.short.corruption": "침식",
+        "anom.short.shatter": "빙결 (얼음)",
+        "anom.short.assault": "경직 (물리)",
+        "label.disorderTimePassedSec": "혼돈: 경과 시간 (초)",
+        "label.sheerForce": "전단력",
+        "label.sheerDmgBonusPct": "파열 피해 (%)",
+        "label.baseAtk": "기초 공격력",
+        "label.atkPct": "공격력 (%)",
+        "label.atkPctFlatGain": "획득 공격력",
+        "label.anomAllowCrit": "이상 치명 허용",
+        "option.off": "끔",
+        "option.on": "켬",
+        "label.anomCritRatePct": "이상 치명타 확률 (%)",
+        "label.anomCritDmgPct": "이상 치명타 피해 (%)",
+        "label.enemyLevel": "적 레벨",
+        "label.enemyDef": "적 방어력",
+        "label.defReductionPct": "방어력 감소 (%)",
+        "label.enemyResPhysicalPct": "물리 저항 (%)",
+        "label.enemyResFirePct": "화염 저항 (%)",
+        "label.enemyResIcePct": "얼음 저항 (%)",
+        "label.enemyResElectricPct": "전기 저항 (%)",
+        "label.enemyResEtherPct": "에테르 저항 (%)",
+        "label.resReductionPct": "저항 감소 (%)",
+        "label.dmgTakenPct": "받는 피해 (%)",
+        "label.dmgTakenOtherPct": "기타 받는 피해 (%)",
+        "label.isStunned": "그로기 여부",
+        "option.no": "아니오",
+        "option.yes": "예",
+        "label.stunPct": "그로기 배율 (%)",
+        "label.marginalMode": "한계 효율 모드",
+        "marginal.conditional": "조건부 / 누적",
+        "marginal.isolated": "독립 / 분리",
+        "hint.marginalDefault": "조건부 모드는 다른 테스트 추가 값이 적용된 상태에서 각 행을 측정합니다. 독립 모드는 현재 빌드만 기준으로 각 행을 개별 측정합니다.",
+        "hint.marginalConditionalActive": "조건부 모드는 다른 0이 아닌 테스트 추가 값이 이미 적용된 상태에서 각 행을 측정합니다.",
+        "hint.marginalConditionalIdle": "조건부 모드가 선택되어 있습니다. 하나 이상의 테스트 추가 값이 0이 아닐 때만 차이가 생깁니다.",
+        "hint.marginalIsolatedActive": "독립 모드는 현재 빌드만 기준으로 각 행을 측정합니다. 다른 테스트 추가 값은 해당 행의 기준값에 영향을 주지 않습니다.",
+        "hint.marginalIsolatedIdle": "독립 모드가 선택되어 있습니다. 하나 이상의 테스트 추가 값이 0이 아닐 때만 차이가 생깁니다.",
+        "table.stat": "스탯",
+        "table.baseEffective": "기본값 (실효)",
+        "table.testAdd": "테스트 추가",
+        "table.testedTotal": "테스트 합계",
+        "table.newOutput": "새 출력값",
+        "table.dmgGain": "피해 증가",
+        "table.dmgGainPct": "피해 증가 (%)",
+        "table.efficiency": "효율",
+        "kpi.expectedDmg": "기대 피해",
+        "kpi.dmgNonCrit": "비치명 피해",
+        "kpi.dmgCrit": "치명 피해",
+        "kpi.anomalyType": "이상 유형",
+        "kpi.expectedTickDmg": "예상 틱 피해",
+        "kpi.anomalyTotal": "이상 총피해",
+        "kpi.anomalyHit": "이상 피해",
+        "kpi.disorderHit": "혼돈 피해",
+        "note.effectiveCapRaw": "실효 상한: {eff}% • 원시 합계: {raw}%",
+        "note.effCombined": "실효 합산: {eff}%",
+        "note.effCombinedRaw": "실효 합산: {eff}% (원시 {raw}%)",
+        "tooltip.testAddPct": "이 스탯의 기본 증가량입니다. 원하는 시험값으로 직접 수정할 수 있습니다.",
+        "tooltip.testAddFlat": "이 스탯의 기본 고정 증가량입니다. 원하는 시험값으로 직접 수정할 수 있습니다.",
+        "alert.saved": "저장되었습니다.",
+        "alert.noSavedBuild": "저장된 빌드를 찾을 수 없습니다.",
+        "alert.loaded": "불러왔습니다.",
+        "prompt.buildName": "내보낼 JSON 파일 이름을 입력하세요:",
+        "alert.imported": "가져왔습니다.",
+        "error.jsonTooLarge": "JSON 파일이 너무 큽니다.",
+        "error.invalidJson": "유효하지 않은 JSON입니다.",
+        "error.readFile": "파일을 읽지 못했습니다.",
+        "label.genericDmg": "일반 피해",
+        "label.attributeDmg": "속성 피해",
+        "label.skillDmg": "스킬 피해",
+        "label.otherDmg": "기타 피해",
+        "label.critRate": "치명타 확률",
+        "label.critDmg": "치명타 피해",
+        "label.penRatio": "관통률",
+        "label.defReduction": "방어력 감소",
+        "label.resReduction": "저항 감소",
+        "label.resIgnore": "저항 무시",
+        "label.dmgTaken": "받는 피해",
+        "label.otherDmgTaken": "기타 받는 피해",
+        "label.stunnedMultiplier": "그로기 배율",
+        "label.anomalyDmg": "이상 피해",
+        "label.disorderDmg": "혼돈 피해",
+        "label.sheerDmgBonus": "파열 피해 보너스",
+      },
+    };
+
+    static init(dom) {
+      const saved = localStorage.getItem(I18n.STORAGE_KEY);
+      I18n.current = saved === "ko" ? "ko" : "en";
+      const sel = dom.select("languageSelect");
+      if (sel) sel.value = I18n.current;
+      I18n.applyDocument(document);
+    }
+
+    static setLanguage(lang, dom) {
+      I18n.current = lang === "ko" ? "ko" : "en";
+      localStorage.setItem(I18n.STORAGE_KEY, I18n.current);
+      const sel = dom?.select?.("languageSelect");
+      if (sel) sel.value = I18n.current;
+      I18n.applyDocument(document);
+    }
+
+    static t(key, vars = null) {
+      const table = I18n.STRINGS[I18n.current] || I18n.STRINGS.en;
+      let out = table[key] ?? I18n.STRINGS.en[key] ?? key;
+      if (vars) {
+        for (const [k, v] of Object.entries(vars)) {
+          out = out.replaceAll(`{${k}}`, String(v));
+        }
+      }
+      return out;
+    }
+
+    static applyDocument(root) {
+      if (!root) return;
+      const html = document.documentElement;
+      if (html) html.lang = I18n.current === "ko" ? "ko" : "en";
+      root.querySelectorAll("[data-i18n]").forEach((el) => {
+        const key = el.getAttribute("data-i18n");
+        if (!key) return;
+        el.textContent = I18n.t(key);
+      });
+      root.querySelectorAll("[data-i18n-label]").forEach((el) => {
+        const key = el.getAttribute("data-i18n-label");
+        if (!key) return;
+        el.setAttribute("data-label", I18n.t(key));
+      });
+    }
+  }
 
   class MarginalSort {
     static DEFAULT = { key: "pctGain", dir: "desc" };
@@ -542,14 +864,14 @@ return total;
     static effectiveDisplay(i, key, rawValue) {
       if (key === "critRatePct") {
         const eff = MathUtil.clamp(rawValue, 0, 100);
-        return { primary: eff, secondary: Math.abs(eff - rawValue) > 1e-9 ? `Effective cap: ${MathUtil.fmtSmart(eff)}% • Raw total: ${MathUtil.fmtSmart(rawValue)}%` : "" };
+        return { primary: eff, secondary: Math.abs(eff - rawValue) > 1e-9 ? I18n.t("note.effectiveCapRaw", { eff: MathUtil.fmtSmart(eff), raw: MathUtil.fmtSmart(rawValue) }) : "" };
       }
       if (key === "defReductionPct" || key === "defIgnorePct") {
         const defRed = (key === "defReductionPct") ? rawValue : Number(i.enemy.defReductionPct) || 0;
         const defIgn = (key === "defIgnorePct") ? rawValue : Number(i.agent.defIgnorePct) || 0;
         const combinedRaw = defRed + defIgn;
         const combinedEff = MathUtil.clamp(combinedRaw, 0, 100);
-        const secondary = `Eff. combined: ${MathUtil.fmtSmart(combinedEff)}%` + (Math.abs(combinedEff - combinedRaw) > 1e-9 ? ` (Raw ${MathUtil.fmtSmart(combinedRaw)}%)` : "");
+        const secondary = (Math.abs(combinedEff - combinedRaw) > 1e-9 ? I18n.t("note.effCombinedRaw", { eff: MathUtil.fmtSmart(combinedEff), raw: MathUtil.fmtSmart(combinedRaw) }) : I18n.t("note.effCombined", { eff: MathUtil.fmtSmart(combinedEff) }));
         return { primary: rawValue, secondary };
       }
       return { primary: rawValue, secondary: "" };
@@ -635,14 +957,14 @@ return total;
     static effectiveDisplay(i, key, rawValue) {
       if (key === "critRatePct") {
         const eff = MathUtil.clamp(rawValue, 0, 100);
-        return { primary: eff, secondary: Math.abs(eff - rawValue) > 1e-9 ? `Effective cap: ${MathUtil.fmtSmart(eff)}% • Raw total: ${MathUtil.fmtSmart(rawValue)}%` : "" };
+        return { primary: eff, secondary: Math.abs(eff - rawValue) > 1e-9 ? I18n.t("note.effectiveCapRaw", { eff: MathUtil.fmtSmart(eff), raw: MathUtil.fmtSmart(rawValue) }) : "" };
       }
       if (key === "defReductionPct" || key === "defIgnorePct") {
         const defRed = (key === "defReductionPct") ? rawValue : Number(i.enemy.defReductionPct) || 0;
         const defIgn = (key === "defIgnorePct") ? rawValue : Number(i.agent.defIgnorePct) || 0;
         const combinedRaw = defRed + defIgn;
         const combinedEff = MathUtil.clamp(combinedRaw, 0, 100);
-        const secondary = `Eff. combined: ${MathUtil.fmtSmart(combinedEff)}%` + (Math.abs(combinedEff - combinedRaw) > 1e-9 ? ` (Raw ${MathUtil.fmtSmart(combinedRaw)}%)` : "");
+        const secondary = (Math.abs(combinedEff - combinedRaw) > 1e-9 ? I18n.t("note.effCombinedRaw", { eff: MathUtil.fmtSmart(combinedEff), raw: MathUtil.fmtSmart(combinedRaw) }) : I18n.t("note.effCombined", { eff: MathUtil.fmtSmart(combinedEff) }));
         return { primary: rawValue, secondary };
       }
       return { primary: rawValue, secondary: "" };
@@ -745,14 +1067,14 @@ return total;
     static effectiveDisplay(i, key, rawValue) {
       if (key === "critRatePct") {
         const eff = MathUtil.clamp(rawValue, 0, 100);
-        return { primary: eff, secondary: Math.abs(eff - rawValue) > 1e-9 ? `Effective cap: ${MathUtil.fmtSmart(eff)}% • Raw total: ${MathUtil.fmtSmart(rawValue)}%` : "" };
+        return { primary: eff, secondary: Math.abs(eff - rawValue) > 1e-9 ? I18n.t("note.effectiveCapRaw", { eff: MathUtil.fmtSmart(eff), raw: MathUtil.fmtSmart(rawValue) }) : "" };
       }
       if (key === "defReductionPct" || key === "defIgnorePct") {
         const defRed = (key === "defReductionPct") ? rawValue : Number(i.enemy.defReductionPct) || 0;
         const defIgn = (key === "defIgnorePct") ? rawValue : Number(i.agent.defIgnorePct) || 0;
         const combinedRaw = defRed + defIgn;
         const combinedEff = MathUtil.clamp(combinedRaw, 0, 100);
-        const secondary = `Eff. combined: ${MathUtil.fmtSmart(combinedEff)}%` + (Math.abs(combinedEff - combinedRaw) > 1e-9 ? ` (Raw ${MathUtil.fmtSmart(combinedRaw)}%)` : "");
+        const secondary = (Math.abs(combinedEff - combinedRaw) > 1e-9 ? I18n.t("note.effCombinedRaw", { eff: MathUtil.fmtSmart(combinedEff), raw: MathUtil.fmtSmart(combinedRaw) }) : I18n.t("note.effCombined", { eff: MathUtil.fmtSmart(combinedEff) }));
         return { primary: rawValue, secondary };
       }
       return { primary: rawValue, secondary: "" };
@@ -798,14 +1120,14 @@ return total;
     static effectiveDisplay(i, key, rawValue) {
       if (key === "critRatePct") {
         const eff = MathUtil.clamp(rawValue, 0, 100);
-        return { primary: eff, secondary: Math.abs(eff - rawValue) > 1e-9 ? `Effective cap: ${MathUtil.fmtSmart(eff)}% • Raw total: ${MathUtil.fmtSmart(rawValue)}%` : "" };
+        return { primary: eff, secondary: Math.abs(eff - rawValue) > 1e-9 ? I18n.t("note.effectiveCapRaw", { eff: MathUtil.fmtSmart(eff), raw: MathUtil.fmtSmart(rawValue) }) : "" };
       }
       if (key === "defReductionPct" || key === "defIgnorePct") {
         const defRed = (key === "defReductionPct") ? rawValue : Number(i.enemy.defReductionPct) || 0;
         const defIgn = (key === "defIgnorePct") ? rawValue : Number(i.agent.defIgnorePct) || 0;
         const combinedRaw = defRed + defIgn;
         const combinedEff = MathUtil.clamp(combinedRaw, 0, 100);
-        const secondary = `Eff. combined: ${MathUtil.fmtSmart(combinedEff)}%` + (Math.abs(combinedEff - combinedRaw) > 1e-9 ? ` (Raw ${MathUtil.fmtSmart(combinedRaw)}%)` : "");
+        const secondary = (Math.abs(combinedEff - combinedRaw) > 1e-9 ? I18n.t("note.effCombinedRaw", { eff: MathUtil.fmtSmart(combinedEff), raw: MathUtil.fmtSmart(combinedRaw) }) : I18n.t("note.effCombined", { eff: MathUtil.fmtSmart(combinedEff) }));
         return { primary: rawValue, secondary };
       }
       return { primary: rawValue, secondary: "" };
@@ -844,34 +1166,34 @@ return total;
   }
   class StatMeta {
     static _LIST = [
-      { key: "atk", label: "ATK", kind: "flat" },
+      { key: "atk", labelKey: "label.atk", label: "ATK", kind: "flat" },
 
-      { key: "dmgGenericPct", label: "Generic DMG", kind: "pct" },
-      { key: "dmgAttrPct", label: "Attribute DMG", kind: "pct" },
-      { key: "dmgSkillTypePct", label: "Skill DMG", kind: "pct" },
-      { key: "dmgOtherPct", label: "Other DMG", kind: "pct" },
+      { key: "dmgGenericPct", labelKey: "label.genericDmg", label: "Generic DMG", kind: "pct" },
+      { key: "dmgAttrPct", labelKey: "label.attributeDmg", label: "Attribute DMG", kind: "pct" },
+      { key: "dmgSkillTypePct", labelKey: "label.skillDmg", label: "Skill DMG", kind: "pct" },
+      { key: "dmgOtherPct", labelKey: "label.otherDmg", label: "Other DMG", kind: "pct" },
 
-      { key: "critRatePct", label: "Crit Rate", kind: "pct" },
-      { key: "critDmgPct", label: "Crit DMG", kind: "pct" },
+      { key: "critRatePct", labelKey: "label.critRate", label: "Crit Rate", kind: "pct" },
+      { key: "critDmgPct", labelKey: "label.critDmg", label: "Crit DMG", kind: "pct" },
 
-      { key: "penRatioPct", label: "PEN Ratio", kind: "pct" },
-      { key: "penFlat", label: "PEN", kind: "flat" },
+      { key: "penRatioPct", labelKey: "label.penRatio", label: "PEN Ratio", kind: "pct" },
+      { key: "penFlat", labelKey: "label.penFlat", label: "PEN", kind: "flat" },
 
-      { key: "defReductionPct", label: "DEF Reduction", kind: "pct" },
-      { key: "defIgnorePct", label: "DEF Ignore", kind: "pct" },
-      { key: "resReductionPct", label: "RES Reduction", kind: "pct" },
-      { key: "resIgnorePct", label: "RES Ignore", kind: "pct" },
+      { key: "defReductionPct", labelKey: "label.defReduction", label: "DEF Reduction", kind: "pct" },
+      { key: "defIgnorePct", labelKey: "label.defIgnorePct", label: "DEF Ignore", kind: "pct" },
+      { key: "resReductionPct", labelKey: "label.resReduction", label: "RES Reduction", kind: "pct" },
+      { key: "resIgnorePct", labelKey: "label.resIgnore", label: "RES Ignore", kind: "pct" },
 
-      { key: "dmgTakenPct", label: "DMG Taken", kind: "pct" },
-      { key: "dmgTakenOtherPct", label: "Other DMG Taken", kind: "pct" },
-      { key: "stunPct", label: "Stunned Multiplier", kind: "pct" },
+      { key: "dmgTakenPct", labelKey: "label.dmgTaken", label: "DMG Taken", kind: "pct" },
+      { key: "dmgTakenOtherPct", labelKey: "label.otherDmgTaken", label: "Other DMG Taken", kind: "pct" },
+      { key: "stunPct", labelKey: "label.stunnedMultiplier", label: "Stunned Multiplier", kind: "pct" },
 
-      { key: "anomProf", label: "Anomaly Proficiency", kind: "flat" },
-      { key: "anomDmgPct", label: "Anomaly DMG", kind: "pct" },
-      { key: "disorderDmgPct", label: "Disorder DMG", kind: "pct" },
+      { key: "anomProf", labelKey: "label.anomProf", label: "Anomaly Proficiency", kind: "flat" },
+      { key: "anomDmgPct", labelKey: "label.anomalyDmg", label: "Anomaly DMG", kind: "pct" },
+      { key: "disorderDmgPct", labelKey: "label.disorderDmg", label: "Disorder DMG", kind: "pct" },
 
-      { key: "sheerForce", label: "Sheer Force", kind: "flat" },
-      { key: "sheerDmgBonusPct", label: "Sheer DMG Bonus", kind: "pct" },
+      { key: "sheerForce", labelKey: "label.sheerForce", label: "Sheer Force", kind: "flat" },
+      { key: "sheerDmgBonusPct", labelKey: "label.sheerDmgBonus", label: "Sheer DMG Bonus", kind: "pct" },
     ];
 
     static _MAP = (() => {
@@ -1105,14 +1427,14 @@ return total;
     static effectiveDisplay(i, key, rawValue) {
       if (key === "critRatePct") {
         const eff = MathUtil.clamp(rawValue, 0, 100);
-        return { primary: eff, secondary: Math.abs(eff - rawValue) > 1e-9 ? `Effective cap: ${MathUtil.fmtSmart(eff)}% • Raw total: ${MathUtil.fmtSmart(rawValue)}%` : "" };
+        return { primary: eff, secondary: Math.abs(eff - rawValue) > 1e-9 ? I18n.t("note.effectiveCapRaw", { eff: MathUtil.fmtSmart(eff), raw: MathUtil.fmtSmart(rawValue) }) : "" };
       }
       if (key === "defReductionPct" || key === "defIgnorePct") {
         const defRed = (key === "defReductionPct") ? rawValue : Number(i.enemy.defReductionPct) || 0;
         const defIgn = (key === "defIgnorePct") ? rawValue : Number(i.agent.defIgnorePct) || 0;
         const combinedRaw = defRed + defIgn;
         const combinedEff = MathUtil.clamp(combinedRaw, 0, 100);
-        const secondary = `Eff. combined: ${MathUtil.fmtSmart(combinedEff)}%` + (Math.abs(combinedEff - combinedRaw) > 1e-9 ? ` (Raw ${MathUtil.fmtSmart(combinedRaw)}%)` : "");
+        const secondary = (Math.abs(combinedEff - combinedRaw) > 1e-9 ? I18n.t("note.effCombinedRaw", { eff: MathUtil.fmtSmart(combinedEff), raw: MathUtil.fmtSmart(combinedRaw) }) : I18n.t("note.effCombined", { eff: MathUtil.fmtSmart(combinedEff) }));
         return { primary: rawValue, secondary };
       }
       return { primary: rawValue, secondary: "" };
@@ -1198,7 +1520,7 @@ return total;
 
         rows.push({
           key: m.key,
-          label: m.label,
+          label: I18n.t(m.labelKey || m.label),
           applied,
           out2: shownOut,
           gain,
@@ -1257,7 +1579,7 @@ return total;
       // Basic DoS guard: reject very large JSON files
       const MAX_BYTES = 1_000_000; // 1MB
       if (file.size > MAX_BYTES) {
-        onError("JSON file is too large.");
+        onError(I18n.t("error.jsonTooLarge"));
         return;
       }
       const reader = new FileReader();
@@ -1267,10 +1589,10 @@ return total;
           const data = JSON.parse(text);
           onData(data);
         } catch {
-          onError("Invalid JSON.");
+          onError(I18n.t("error.invalidJson"));
         }
       };
-      reader.onerror = () => onError("Failed to read file.");
+      reader.onerror = () => onError(I18n.t("error.readFile"));
       reader.readAsText(file);
     }
 
@@ -1430,12 +1752,12 @@ return total;
       });
       if (mode === "conditional") {
         hint.textContent = hasTestAdds
-          ? "Conditional mode measures each row after the other non-zero Test Add values are already applied."
-          : "Conditional mode is selected. It behaves differently only when one or more Test Add values are non-zero."
+          ? I18n.t("hint.marginalConditionalActive")
+          : I18n.t("hint.marginalConditionalIdle")
       } else {
         hint.textContent = hasTestAdds
-          ? "Isolated mode measures each row from the current build only. Other Test Add values do not affect that row’s baseline."
-          : "Isolated mode is selected. It behaves differently only when one or more Test Add values are non-zero."
+          ? I18n.t("hint.marginalIsolatedActive")
+          : I18n.t("hint.marginalIsolatedIdle")
       }
     }
 
@@ -1444,7 +1766,7 @@ return total;
       if (!this.marginalHead) return;
       this.dom.qsa("#marginalHead th[data-sort-key]").forEach((th) => {
         if (!(th instanceof HTMLElement)) return;
-        const label = th.dataset.label || th.textContent || "";
+        const label = th.dataset.i18nLabel ? I18n.t(th.dataset.i18nLabel) : (th.dataset.label || th.textContent || "");
         const key = th.dataset.sortKey || "";
         const arrowEl = th.querySelector(".sort-arrow");
         if (arrowEl) arrowEl.textContent = MarginalSort.indicator(sortState, key);
@@ -1511,8 +1833,8 @@ return total;
       input.step = (kind === "flat") ? "1" : "0.1";
       input.value = String(val);
       input.title = kind === "pct"
-        ? "Smart default increment for this stat. Edit any row to test your own amount."
-        : "Smart default flat increment for this stat. Edit any row to test your own amount.";
+        ? I18n.t("tooltip.testAddPct")
+        : I18n.t("tooltip.testAddFlat");
 
       input.dataset.key = row.key;
       input.dataset.kind = kind;
@@ -1642,6 +1964,9 @@ return total;
       const jsonNameEl = this.dom.input("jsonName");
       if (jsonNameEl) jsonNameEl.value = String(data?.jsonName ?? "");
 
+      const importedLang = data?.ui?.language;
+      if (importedLang) I18n.setLanguage(importedLang, this.dom);
+
       const mode = (data?.mode ?? "standard");
       const modeEl = this.dom.select("mode");
       if (modeEl) modeEl.value = mode;
@@ -1753,6 +2078,7 @@ return total;
       this.applier = new UiApplier(this.dom);
       this.sortState = { ...MarginalSort.DEFAULT };
 
+      I18n.init(this.dom);
       this._wireNumericGuards();
 
       // Debounced refresh: coalesce multiple input events into one paint-frame.
@@ -1781,23 +2107,23 @@ return total;
       this._applyToggleUi(i);
 
       const preview = Preview.compute(i);
-      const kpiItems = [{ t: "Expected DMG", v: MathUtil.fmt0(preview.output_expected) }];
+      const kpiItems = [{ t: I18n.t("kpi.expectedDmg"), v: MathUtil.fmt0(preview.output_expected) }];
 
-      kpiItems.push({ t: "DMG (Non-Crit)", v: MathUtil.fmt0(preview.output_noncrit) });
-      kpiItems.push({ t: "DMG (Crit)", v: MathUtil.fmt0(preview.output_crit) });
+      kpiItems.push({ t: I18n.t("kpi.dmgNonCrit"), v: MathUtil.fmt0(preview.output_noncrit) });
+      kpiItems.push({ t: I18n.t("kpi.dmgCrit"), v: MathUtil.fmt0(preview.output_crit) });
 
       if (preview.anom) {
-                const anomLabel = (AnomalyCalculator.ANOM_META?.[preview.anom.anomType]?.label)
-          ?? String(preview.anom.anomType || "").replace(/^./, (c) => c.toUpperCase());
-        kpiItems.push({ t: "Anomaly Type", v: anomLabel });
+                const anomLabelKeyMap = { assault: "anom.assault", burn: "anom.burn", shock: "anom.shock", shatter: "anom.shatter", corruption: "anom.corruption" };
+        const anomLabel = I18n.t(anomLabelKeyMap[preview.anom.anomType] || preview.anom.anomType || "");
+        kpiItems.push({ t: I18n.t("kpi.anomalyType"), v: anomLabel });
         if (preview.anom.kind === "dot") {
-          kpiItems.push({ t: "Expected Tick DMG", v: MathUtil.fmt0(preview.anom.anomalyPerTick.avg) });
-          kpiItems.push({ t: "Anomaly Total", v: MathUtil.fmt0(preview.anom.anomalyPerProc.avg) });
+          kpiItems.push({ t: I18n.t("kpi.expectedTickDmg"), v: MathUtil.fmt0(preview.anom.anomalyPerTick.avg) });
+          kpiItems.push({ t: I18n.t("kpi.anomalyTotal"), v: MathUtil.fmt0(preview.anom.anomalyPerProc.avg) });
         } else {
-          kpiItems.push({ t: "Anomaly Hit", v: MathUtil.fmt0(preview.anom.anomalyPerProc.avg) });
+          kpiItems.push({ t: I18n.t("kpi.anomalyHit"), v: MathUtil.fmt0(preview.anom.anomalyPerProc.avg) });
         }
         if (AppConfig.SHOW_DISORDER_UI) {
-          kpiItems.push({ t: "Disorder Hit", v: MathUtil.fmt0(preview.anom.disorder.avg) });
+          kpiItems.push({ t: I18n.t("kpi.disorderHit"), v: MathUtil.fmt0(preview.anom.disorder.avg) });
         }
       }
 
@@ -1806,6 +2132,7 @@ return total;
 
       const marginal = MarginalAnalyzer.compute(i);
       this.renderer.renderMarginalTable(i, marginal, this.sortState);
+      I18n.applyDocument(document);
     }
 
 
@@ -1840,22 +2167,22 @@ return total;
       this.dom.btn("btnSave")?.addEventListener("click", () => {
         const data = this._exportData();
         StorageManager.setSaved(data);
-        alert("Saved.");
+        alert(I18n.t("alert.saved"));
         this.requestRefresh();
       });
 
       this.dom.btn("btnLoad")?.addEventListener("click", () => {
         const data = StorageManager.getSaved();
-        if (!data) { alert("No saved build found."); return; }
+        if (!data) { alert(I18n.t("alert.noSavedBuild")); return; }
         this.applier.applyImportedData(data);
-        alert("Loaded.");
+        alert(I18n.t("alert.loaded"));
         this.requestRefresh();
       });
 
       this.dom.btn("btnExport")?.addEventListener("click", () => {
         const data = this._exportData();
         if (!data.jsonName) {
-          const v = (prompt("Name this build (for the exported JSON file):", "My Build") || "").trim();
+          const v = (prompt(I18n.t("prompt.buildName"), "My Build") || "").trim();
           if (v) data.jsonName = v;
         }
         StorageManager.exportJson(data);
@@ -1873,7 +2200,7 @@ return total;
             f,
             (data) => {
               this.applier.applyImportedData(data);
-              alert("Imported.");
+              alert(I18n.t("alert.imported"));
               this.requestRefresh();
 },
             (msg) => alert(msg)
@@ -1892,6 +2219,11 @@ return total;
       });
       this.dom.qsa("select").forEach(el => {
         el.addEventListener("change", () => this.requestRefresh());
+      });
+      this.dom.select("languageSelect")?.addEventListener("change", (e) => {
+        const target = /** @type {HTMLSelectElement} */ (e.target);
+        I18n.setLanguage(target.value, this.dom);
+        this.requestRefresh();
       });
 
       const syncAppliedDeltaValue = (e) => {
@@ -1955,6 +2287,7 @@ return total;
 
       return {
         jsonName: i.jsonName,
+        ui: { language: I18n.current },
         mode: i.mode,
         agent: {
           level: i.agent.level,

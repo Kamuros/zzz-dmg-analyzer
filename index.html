@@ -4,140 +4,115 @@
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1" name="viewport"/>
   <meta content="default-src 'self' blob:; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'self'" http-equiv="Content-Security-Policy"/>
-  <title>
-   Zenless Zone Zero Analyzer
-  </title>
+  <title>Zenless Zone Zero Analyzer</title>
   <link href="style.css" rel="stylesheet"/>
  </head>
  <body>
   <div class="page-shell">
-   <h1>
-    Zenless Zone Zero: Damage Inputs + “Diminishing Returns” Analyzer V1.0
-   </h1>
+   <h1 data-i18n="title.app">Zenless Zone Zero: Damage Inputs + “Diminishing Returns” Analyzer V1.0</h1>
    <div class="app-layout">
     <div class="panel-left">
      <div class="card mt-15">
       <div class="row">
        <label>
-        Mode
+        <span data-i18n="label.mode">Mode</span>
         <select id="mode">
-         <option value="standard">
-          Standard
-         </option>
-         <option value="anomaly">
-          Anomaly
-         </option>
-         <option value="rupture">
-          Rupture
-         </option>
+         <option data-i18n="mode.standard" value="standard">Standard</option>
+         <option data-i18n="mode.anomaly" value="anomaly">Anomaly</option>
+         <option data-i18n="mode.rupture" value="rupture">Rupture</option>
         </select>
        </label>
       </div>
-      <div class="row mt-10">
-       <button class="btn" id="btnSave">
-        Save
-       </button>
-       <button class="btn" id="btnLoad">
-        Load
-       </button>
-       <button class="btn" id="btnExport">
-        Export JSON
-       </button>
-       <button class="btn" id="btnImport">
-        Import JSON
-       </button>
+      <div class="row mt-10 top-controls-row">
+       <label class="lang-switch-wrap">
+        <span data-i18n="ui.language">Language</span>
+        <select id="languageSelect">
+         <option value="en">English</option>
+         <option value="ko">한국어</option>
+        </select>
+       </label>
+       <button class="btn" id="btnSave" data-i18n="button.save">Save</button>
+       <button class="btn" id="btnLoad" data-i18n="button.load">Load</button>
+       <button class="btn" id="btnExport" data-i18n="button.exportJson">Export JSON</button>
+       <button class="btn" id="btnImport" data-i18n="button.importJson">Import JSON</button>
        <input accept="application/json" class="hidden" id="importFile" type="file"/>
-       <button class="btn" id="btnReset">
-        Reset
-       </button>
+       <button class="btn" id="btnReset" data-i18n="button.reset">Reset</button>
       </div>
      </div>
 
      <section class="section-block">
-      <h2>
-       Agent Stats
-      </h2>
+      <h2 data-i18n="section.agentStats">Agent Stats</h2>
       <div class="card">
        <div class="form">
         <div class="form-row cols-2 agent-row-1">
          <label>
-          Agent Level
-          <input data-integer-only="true" data-number-only="true" id="agentLevel" min="1" max="60" step="1" type="number" value="60"/>
+          <span data-i18n="label.agentLevel">Agent Level</span>
+          <input data-integer-only="true" data-number-only="true" id="agentLevel" max="60" min="1" step="1" type="number" value="60"/>
          </label>
          <label>
-          Attribute
+          <span data-i18n="label.attribute">Attribute</span>
           <select id="attribute">
-           <option value="physical">
-            Physical
-           </option>
-           <option value="fire">
-            Fire
-           </option>
-           <option value="ice">
-            Ice
-           </option>
-           <option value="electric">
-            Electric
-           </option>
-           <option value="ether">
-            Ether
-           </option>
+           <option data-i18n="attr.physical" value="physical">Physical</option>
+           <option data-i18n="attr.fire" value="fire">Fire</option>
+           <option data-i18n="attr.ice" value="ice">Ice</option>
+           <option data-i18n="attr.electric" value="electric">Electric</option>
+           <option data-i18n="attr.ether" value="ether">Ether</option>
           </select>
          </label>
         </div>
         <div class="form-row cols-3 agent-row-2">
          <label>
-          ATK
-          <input data-allow-plus="true" data-number-only="true" inputmode="decimal" id="atk" type="text" value="2000"/>
+          <span data-i18n="label.atk">ATK</span>
+          <input data-allow-plus="true" data-number-only="true" id="atk" inputmode="decimal" type="text" value="2000"/>
          </label>
          <label>
-          Crit Rate (%)
-          <input data-number-only="true" inputmode="decimal" id="critRatePct" max="100" type="text" value="5"/>
+          <span data-i18n="label.critRatePct">Crit Rate (%)</span>
+          <input data-number-only="true" id="critRatePct" inputmode="decimal" max="100" type="text" value="5"/>
          </label>
          <label>
-          Crit DMG (%)
-          <input data-allow-plus="true" data-number-only="true" inputmode="decimal" id="critDmgPct" type="text" value="50"/>
+          <span data-i18n="label.critDmgPct">Crit DMG (%)</span>
+          <input data-allow-plus="true" data-number-only="true" id="critDmgPct" inputmode="decimal" type="text" value="50"/>
          </label>
         </div>
         <div class="form-row cols-4 agent-row-3">
          <label>
-          Generic DMG (%)
-          <input data-allow-plus="true" data-number-only="true" inputmode="decimal" id="dmgGenericPct" type="text" value="0"/>
+          <span data-i18n="label.dmgGenericPct">Generic DMG (%)</span>
+          <input data-allow-plus="true" data-number-only="true" id="dmgGenericPct" inputmode="decimal" type="text" value="0"/>
          </label>
          <label>
-          Attribute DMG (%)
-          <input data-allow-plus="true" data-number-only="true" inputmode="decimal" id="dmgAttrPct" type="text" value="0"/>
+          <span data-i18n="label.dmgAttrPct">Attribute DMG (%)</span>
+          <input data-allow-plus="true" data-number-only="true" id="dmgAttrPct" inputmode="decimal" type="text" value="0"/>
          </label>
          <label>
-          Skill DMG (%)
-          <input data-allow-plus="true" data-number-only="true" inputmode="decimal" id="dmgSkillTypePct" type="text" value="0"/>
+          <span data-i18n="label.dmgSkillTypePct">Skill DMG (%)</span>
+          <input data-allow-plus="true" data-number-only="true" id="dmgSkillTypePct" inputmode="decimal" type="text" value="0"/>
          </label>
          <label>
-          Other DMG (%)
-          <input data-allow-plus="true" data-number-only="true" inputmode="decimal" id="dmgOtherPct" type="text" value="0"/>
+          <span data-i18n="label.dmgOtherPct">Other DMG (%)</span>
+          <input data-allow-plus="true" data-number-only="true" id="dmgOtherPct" inputmode="decimal" type="text" value="0"/>
          </label>
         </div>
         <div class="form-row cols-4 agent-row-4">
          <label>
-          PEN Ratio (%)
-          <input data-allow-plus="true" data-number-only="true" inputmode="decimal" id="penRatioPct" type="text" value="0"/>
+          <span data-i18n="label.penRatioPct">PEN Ratio (%)</span>
+          <input data-allow-plus="true" data-number-only="true" id="penRatioPct" inputmode="decimal" type="text" value="0"/>
          </label>
          <label>
-          PEN
-          <input data-allow-plus="true" data-number-only="true" inputmode="decimal" id="penFlat" type="text" value="0"/>
+          <span data-i18n="label.penFlat">PEN</span>
+          <input data-allow-plus="true" data-number-only="true" id="penFlat" inputmode="decimal" type="text" value="0"/>
          </label>
          <label>
-          DEF Ignore (%)
-          <input data-allow-plus="true" data-number-only="true" inputmode="decimal" id="defIgnorePct" type="text" value="0"/>
+          <span data-i18n="label.defIgnorePct">DEF Ignore (%)</span>
+          <input data-allow-plus="true" data-number-only="true" id="defIgnorePct" inputmode="decimal" type="text" value="0"/>
          </label>
          <label>
-          RES Ignore (%)
-          <input data-allow-plus="true" data-number-only="true" inputmode="decimal" id="resIgnorePct" type="text" value="0"/>
+          <span data-i18n="label.resIgnorePct">RES Ignore (%)</span>
+          <input data-allow-plus="true" data-number-only="true" id="resIgnorePct" inputmode="decimal" type="text" value="0"/>
          </label>
         </div>
         <div class="form-row cols-1 agent-row-5">
          <label>
-          Skill Multiplier (%)
+          <span data-i18n="label.skillMultPct">Skill Multiplier (%)</span>
           <input data-number-only="true" id="skillMultPct" min="0" step="0.1" type="number" value="100"/>
          </label>
         </div>
@@ -146,86 +121,60 @@
      </section>
 
      <section class="section-block hidden" id="anomalySection">
-      <h2 id="anomalyHeader">
-       Agent Stats: Anomaly
-      </h2>
+      <h2 data-i18n="section.agentStatsAnomaly" id="anomalyHeader">Agent Stats: Anomaly</h2>
       <div class="card" id="anomalyCard">
        <div class="form">
         <div class="form-row cols-2">
          <label>
-          Anomaly Type
+          <span data-i18n="label.anomType">Anomaly Type</span>
           <select id="anomType">
-           <option selected="" value="auto">
-            Auto
-           </option>
-           <option value="assault">
-            Assault (Physical)
-           </option>
-           <option value="burn">
-            Burn (Fire)
-           </option>
-           <option value="shock">
-            Shock (Electric)
-           </option>
-           <option value="shatter">
-            Shatter (Ice)
-           </option>
-           <option value="corruption">
-            Corruption (Ether)
-           </option>
+           <option data-i18n="option.auto" selected="" value="auto">Auto</option>
+           <option data-i18n="anom.assault" value="assault">Assault (Physical)</option>
+           <option data-i18n="anom.burn" value="burn">Burn (Fire)</option>
+           <option data-i18n="anom.shock" value="shock">Shock (Electric)</option>
+           <option data-i18n="anom.shatter" value="shatter">Shatter (Ice)</option>
+           <option data-i18n="anom.corruption" value="corruption">Corruption (Ether)</option>
           </select>
          </label>
          <label>
-          Anomaly Proficiency
-          <input data-allow-plus="true" data-number-only="true" inputmode="decimal" id="anomProf" type="text" value="100"/>
+          <span data-i18n="label.anomProf">Anomaly Proficiency</span>
+          <input data-allow-plus="true" data-number-only="true" id="anomProf" inputmode="decimal" type="text" value="100"/>
          </label>
         </div>
         <div class="form-row cols-3">
          <label>
-          Anomaly DMG (%)
-          <input data-allow-plus="true" data-number-only="true" inputmode="decimal" id="anomDmgPct" type="text" value="0"/>
+          <span data-i18n="label.anomDmgPct">Anomaly DMG (%)</span>
+          <input data-allow-plus="true" data-number-only="true" id="anomDmgPct" inputmode="decimal" type="text" value="0"/>
          </label>
          <label class="hidden disorder-ui">
-          Disorder DMG (%)
-          <input inputmode="decimal" id="disorderDmgPct" type="text" value="0"/>
+          <span data-i18n="label.disorderDmgPct">Disorder DMG (%)</span>
+          <input id="disorderDmgPct" inputmode="decimal" type="text" value="0"/>
          </label>
         </div>
         <div class="form-row cols-3 hidden">
          <label>
-          Tick Count (Override)
+          <span data-i18n="label.anomTickCount">Tick Count (Override)</span>
           <input data-integer-only="true" data-number-only="true" id="anomTickCount" min="1" placeholder="Auto" step="1" type="number" value=""/>
          </label>
          <label>
-          Tick Interval (Sec, Override)
+          <span data-i18n="label.anomTickIntervalSec">Tick Interval (Sec, Override)</span>
           <input data-number-only="true" id="anomTickIntervalSec" min="0" placeholder="Auto" step="0.05" type="number" value=""/>
          </label>
         </div>
         <div class="form-row cols-3 hidden disorder-ui">
          <label>
-          Disorder: Previous Anomaly
+          <span data-i18n="label.disorderPrevType">Disorder: Previous Anomaly</span>
           <select id="disorderPrevType">
-           <option selected="" value="auto">
-            Auto (Current Anomaly Type)
-           </option>
-           <option value="burn">
-            Burn
-           </option>
-           <option value="shock">
-            Shock
-           </option>
-           <option value="corruption">
-            Corruption
-           </option>
-           <option value="shatter">
-            Frozen (Ice)
-           </option>
-           <option value="assault">
-            Flinch (Physical)
-           </option>
+           <option data-i18n="option.autoCurrentAnomaly" selected="" value="auto">Auto (Current Anomaly Type)</option>
+           <option data-i18n="anom.short.burn" value="burn">Burn</option>
+           <option data-i18n="anom.short.shock" value="shock">Shock</option>
+           <option data-i18n="anom.short.corruption" value="corruption">Corruption</option>
+           <option data-i18n="anom.short.shatter" value="shatter">Frozen (Ice)</option>
+           <option data-i18n="anom.short.assault" value="assault">Flinch (Physical)</option>
           </select>
          </label>
          <label class="disorder-ui">
-          Disorder: Time Passed (Sec)
+          <span data-i18n="label.disorderTimePassedSec">Disorder: Time Passed (Sec)</span>
           <input data-number-only="true" id="disorderTimePassedSec" min="0" step="0.1" type="number" value="0"/>
          </label>
         </div>
@@ -234,19 +183,17 @@
      </section>
 
      <section class="section-block hidden" id="ruptureSection">
-      <h2 id="ruptureHeader">
-       Agent Stats: Rupture
-      </h2>
+      <h2 data-i18n="section.agentStatsRupture" id="ruptureHeader">Agent Stats: Rupture</h2>
       <div class="card" id="ruptureCard">
        <div class="form">
         <div class="form-row cols-2">
          <label>
-          Sheer Force
-          <input data-allow-plus="true" data-number-only="true" inputmode="decimal" id="sheerForce" type="text" value="2000"/>
+          <span data-i18n="label.sheerForce">Sheer Force</span>
+          <input data-allow-plus="true" data-number-only="true" id="sheerForce" inputmode="decimal" type="text" value="2000"/>
          </label>
          <label>
-          Sheer DMG (%)
-          <input data-allow-plus="true" data-number-only="true" inputmode="decimal" id="sheerDmgBonusPct" type="text" value="0"/>
+          <span data-i18n="label.sheerDmgBonusPct">Sheer DMG (%)</span>
+          <input data-allow-plus="true" data-number-only="true" id="sheerDmgBonusPct" inputmode="decimal" type="text" value="0"/>
          </label>
         </div>
        </div>
@@ -254,38 +201,36 @@
      </section>
 
      <details class="card" id="advancedTab">
-      <summary class="summary">
-       Advanced
-      </summary>
+      <summary class="summary" data-i18n="section.advanced">Advanced</summary>
       <div class="form mt-12_5">
        <div class="form-row cols-3 advanced-atk-row">
         <label>
-         Base ATK
+         <span data-i18n="label.baseAtk">Base ATK</span>
          <input data-number-only="true" id="baseAtk" min="0" step="0.1" type="number" value="0"/>
         </label>
         <label>
-         ATK (%)
+         <span data-i18n="label.atkPct">ATK (%)</span>
          <input data-number-only="true" id="atkPct" min="0" step="0.1" type="number" value="0"/>
         </label>
         <label>
-         Gained ATK
+         <span data-i18n="label.atkPctFlatGain">Gained ATK</span>
          <input id="atkPctFlatGain" readonly="" tabindex="-1" type="text" value="0"/>
         </label>
        </div>
        <div class="form-row cols-3">
         <label>
-         Allow Anomaly Crit
+         <span data-i18n="label.anomAllowCrit">Allow Anomaly Crit</span>
          <select id="anomAllowCrit">
-          <option value="0" selected>Off</option>
-          <option value="1">On</option>
+          <option data-i18n="option.off" selected value="0">Off</option>
+          <option data-i18n="option.on" value="1">On</option>
          </select>
         </label>
         <label>
-         Anomaly Crit Rate (%)
+         <span data-i18n="label.anomCritRatePct">Anomaly Crit Rate (%)</span>
          <input data-number-only="true" id="anomCritRatePct" max="100" min="0" step="0.1" type="number" value="100"/>
         </label>
         <label>
-         Anomaly Crit DMG (%)
+         <span data-i18n="label.anomCritDmgPct">Anomaly Crit DMG (%)</span>
          <input data-number-only="true" id="anomCritDmgPct" min="0" step="0.1" type="number" value="50"/>
         </label>
        </div>
@@ -293,77 +238,71 @@
      </details>
 
      <section class="section-block">
-      <h2>
-       Enemy
-      </h2>
+      <h2 data-i18n="section.enemy">Enemy</h2>
       <div class="card">
        <div class="form">
         <div class="form-row cols-3 enemy-row-1">
          <label>
-          Enemy Level
-          <input data-integer-only="true" data-number-only="true" id="enemyLevel" min="1" max="70" step="1" type="number" value="70"/>
+          <span data-i18n="label.enemyLevel">Enemy Level</span>
+          <input data-integer-only="true" data-number-only="true" id="enemyLevel" max="70" min="1" step="1" type="number" value="70"/>
          </label>
          <label>
-          Enemy DEF
+          <span data-i18n="label.enemyDef">Enemy DEF</span>
           <input data-integer-only="true" data-number-only="true" id="enemyDef" min="0" step="1" type="number" value="0"/>
          </label>
          <label>
-          DEF Reduction (%)
+          <span data-i18n="label.defReductionPct">DEF Reduction (%)</span>
           <input data-number-only="true" id="defReductionPct" step="0.1" type="number" value="0"/>
          </label>
         </div>
         <div class="form-row cols-3 enemy-row-2">
          <label>
-          Physical RES (%)
+          <span data-i18n="label.enemyResPhysicalPct">Physical RES (%)</span>
           <input data-allow-minus="true" data-number-only="true" id="enemyResPhysicalPct" step="0.1" type="number" value="0"/>
          </label>
          <label>
-          Fire RES (%)
+          <span data-i18n="label.enemyResFirePct">Fire RES (%)</span>
           <input data-allow-minus="true" data-number-only="true" id="enemyResFirePct" step="0.1" type="number" value="0"/>
          </label>
          <label>
-          Ice RES (%)
+          <span data-i18n="label.enemyResIcePct">Ice RES (%)</span>
           <input data-allow-minus="true" data-number-only="true" id="enemyResIcePct" step="0.1" type="number" value="0"/>
          </label>
         </div>
         <div class="form-row cols-3 enemy-row-3">
          <label>
-          Electric RES (%)
+          <span data-i18n="label.enemyResElectricPct">Electric RES (%)</span>
           <input data-allow-minus="true" data-number-only="true" id="enemyResElectricPct" step="0.1" type="number" value="0"/>
          </label>
          <label>
-          Ether RES (%)
+          <span data-i18n="label.enemyResEtherPct">Ether RES (%)</span>
           <input data-allow-minus="true" data-number-only="true" id="enemyResEtherPct" step="0.1" type="number" value="0"/>
          </label>
          <label>
-          RES Reduction (%)
+          <span data-i18n="label.resReductionPct">RES Reduction (%)</span>
           <input data-number-only="true" id="resReductionPct" step="0.1" type="number" value="0"/>
          </label>
         </div>
         <div class="form-row cols-2 enemy-row-4">
          <label>
-          DMG Taken (%)
+          <span data-i18n="label.dmgTakenPct">DMG Taken (%)</span>
           <input data-number-only="true" id="dmgTakenPct" step="0.1" type="number" value="0"/>
          </label>
          <label>
-          Other DMG Taken (%)
+          <span data-i18n="label.dmgTakenOtherPct">Other DMG Taken (%)</span>
           <input data-number-only="true" id="dmgTakenOtherPct" step="0.1" type="number" value="0"/>
          </label>
         </div>
         <div class="form-row cols-2 enemy-row-5">
          <label>
-          Stunned?
+          <span data-i18n="label.isStunned">Stunned?</span>
           <select id="isStunned">
-           <option value="false">
-            No
-           </option>
-           <option value="true">
-            Yes
-           </option>
+           <option data-i18n="option.no" value="false">No</option>
+           <option data-i18n="option.yes" value="true">Yes</option>
           </select>
          </label>
          <label>
-          Stunned Multiplier (%)
+          <span data-i18n="label.stunPct">Stunned Multiplier (%)</span>
           <input data-number-only="true" id="stunPct" step="1" type="number" value="150"/>
          </label>
         </div>
@@ -373,56 +312,54 @@
     </div>
 
     <aside class="panel-right">
-     <h2>
-      Outputs + Marginal Value
-     </h2>
+     <h2 data-i18n="section.outputs">Outputs + Marginal Value</h2>
      <div class="card results-card">
       <div class="kpi" id="kpi"></div>
       <div class="hr"></div>
       <div class="row mt-10">
        <label>
-        Marginal Mode
+        <span data-i18n="label.marginalMode">Marginal Mode</span>
         <select id="marginalMode">
-         <option value="conditional" selected>Conditional / Incremental</option>
-         <option value="isolated">Standalone / Isolated</option>
+         <option data-i18n="marginal.conditional" selected value="conditional">Conditional / Incremental</option>
+         <option data-i18n="marginal.isolated" value="isolated">Standalone / Isolated</option>
         </select>
        </label>
-       <div class="muted" id="marginalModeHint" style="font-size:12px; max-width:520px;">Conditional mode compares each row after the other table test values are already applied. Isolated mode tests each row from the current build only.</div>
+       <div class="muted" data-i18n="hint.marginalDefault" id="marginalModeHint" style="font-size:12px; max-width:520px;">Conditional mode compares each row after the other table test values are already applied. Isolated mode tests each row from the current build only.</div>
       </div>
       <div class="table-wrap">
        <table>
         <thead id="marginalHead">
          <tr>
-          <th class="sortable sorted" data-label="Stat" data-sort-key="label">
-           <span class="sort-label">Stat</span>
+          <th class="sortable" data-i18n-label="table.stat" data-label="Stat" data-sort-key="label">
+           <span class="sort-label" data-i18n="table.stat">Stat</span>
            <span class="sort-arrow"></span>
           </th>
-          <th class="sortable" data-label="Base (Effective)" data-sort-key="origVal">
-           <span class="sort-label">Base (Effective)</span>
+          <th class="sortable" data-i18n-label="table.baseEffective" data-label="Base (Effective)" data-sort-key="origVal">
+           <span class="sort-label" data-i18n="table.baseEffective">Base (Effective)</span>
            <span class="sort-arrow"></span>
           </th>
-          <th class="sortable" data-label="Test Add" data-sort-key="appliedVal">
-           <span class="sort-label">Test Add</span>
+          <th class="sortable" data-i18n-label="table.testAdd" data-label="Test Add" data-sort-key="appliedVal">
+           <span class="sort-label" data-i18n="table.testAdd">Test Add</span>
            <span class="sort-arrow"></span>
           </th>
-          <th class="sortable" data-label="Tested Total" data-sort-key="totalVal">
-           <span class="sort-label">Tested Total</span>
+          <th class="sortable" data-i18n-label="table.testedTotal" data-label="Tested Total" data-sort-key="totalVal">
+           <span class="sort-label" data-i18n="table.testedTotal">Tested Total</span>
            <span class="sort-arrow"></span>
           </th>
-          <th class="sortable" data-label="New Output" data-sort-key="out2">
-           <span class="sort-label">New Output</span>
+          <th class="sortable" data-i18n-label="table.newOutput" data-label="New Output" data-sort-key="out2">
+           <span class="sort-label" data-i18n="table.newOutput">New Output</span>
            <span class="sort-arrow"></span>
           </th>
-          <th class="sortable" data-label="DMG Gain" data-sort-key="gain">
-           <span class="sort-label">DMG Gain</span>
+          <th class="sortable" data-i18n-label="table.dmgGain" data-label="DMG Gain" data-sort-key="gain">
+           <span class="sort-label" data-i18n="table.dmgGain">DMG Gain</span>
            <span class="sort-arrow"></span>
           </th>
-          <th class="sortable" data-label="DMG Gain (%)" data-sort-key="pctGain">
-           <span class="sort-label">DMG Gain (%)</span>
+          <th class="sortable" data-i18n-label="table.dmgGainPct" data-label="DMG Gain (%)" data-sort-key="pctGain">
+           <span class="sort-label" data-i18n="table.dmgGainPct">DMG Gain (%)</span>
            <span class="sort-arrow"></span>
           </th>
-          <th class="sortable" data-label="Efficiency" data-sort-key="efficiency">
-           <span class="sort-label">Efficiency</span>
+          <th class="sortable" data-i18n-label="table.efficiency" data-label="Efficiency" data-sort-key="efficiency">
+           <span class="sort-label" data-i18n="table.efficiency">Efficiency</span>
            <span class="sort-arrow"></span>
           </th>
          </tr>
