@@ -1177,8 +1177,6 @@ return total;
       { key: "critDmgPct", labelKey: "label.critDmg", label: "Crit DMG", kind: "pct" },
 
       { key: "penRatioPct", labelKey: "label.penRatio", label: "PEN Ratio", kind: "pct" },
-      { key: "penFlat", labelKey: "label.penFlat", label: "PEN", kind: "flat" },
-
       { key: "defReductionPct", labelKey: "label.defReduction", label: "DEF Reduction", kind: "pct" },
       { key: "defIgnorePct", labelKey: "label.defIgnorePct", label: "DEF Ignore", kind: "pct" },
       { key: "resReductionPct", labelKey: "label.resReduction", label: "RES Reduction", kind: "pct" },
