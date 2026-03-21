@@ -9,7 +9,7 @@ import {
   Preview,
   MarginalAnalyzer,
   StatMeta,
-} from './zzz_logic.js';
+} from '../zzz_logic.js'; 
 
 function deepMerge(target, source) {
   if (!source || typeof source !== 'object' || Array.isArray(source)) return source ?? target;
