@@ -13,6 +13,30 @@ export class MathUtil {
     const n = Number(pct) || 0;
     return 1 + (n / 100);
   }
+
+  static fmt0(value) {
+    const n = Number(value) || 0;
+    return new Intl.NumberFormat('en-US', {
+      maximumFractionDigits: 0,
+    }).format(n);
+  }
+
+  static fmtMaybe1(value) {
+    const n = Number(value) || 0;
+    const rounded = Math.round(n * 10) / 10;
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: Math.abs(rounded % 1) > 1e-9 ? 1 : 0,
+      maximumFractionDigits: 1,
+    }).format(rounded);
+  }
+
+  static fmtSmart(value) {
+    const n = Number(value) || 0;
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(n);
+  }
 }
 
 export class ZzzMath {
