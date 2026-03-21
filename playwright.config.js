@@ -2,13 +2,16 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-
-  timeout: 30000,
-
+  timeout: 30_000,
   use: {
-    baseURL: 'file://' + process.cwd() + '/',
-    headless: true
+    baseURL: 'http://127.0.0.1:4173',
+    headless: true,
   },
-
-  reporter: [['list']]
+  webServer: {
+    command: 'npx vite --host 127.0.0.1 --port 4173',
+    url: 'http://127.0.0.1:4173',
+    reuseExistingServer: true,
+    timeout: 120_000,
+  },
+  reporter: [['list']],
 });
