@@ -43,7 +43,6 @@ import { AppConfig, MathUtil, ZzzMath, StandardCalculator, AnomalyCalculator, Ru
   }
 
 
-
   class I18n {
     static STORAGE_KEY = "zzz_calc_lang_v1";
     static current = "en";
