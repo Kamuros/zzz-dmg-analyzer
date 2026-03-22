@@ -48,8 +48,6 @@ Buckets:
 - Skill Type DMG%
 - Other DMG%
 
-✔ Confirmed consistent across all major community sources
-
 ---
 
 # 4. DEF System (Order and Behavior)
@@ -70,8 +68,6 @@ Key points:
 - DEF Reduction and DEF Ignore are **additive**
 - PEN Ratio is applied **after reduction/ignore**
 - Flat PEN is applied last
-
-✔ Strong agreement across community research and spreadsheets
 
 ---
 
@@ -98,8 +94,6 @@ Key behaviors:
 - RES Reduction and RES Ignore are additive
 - Negative RES increases damage
 - All RES affects all attributes equally
-
-✔ Confirmed by community docs and testing
 
 ---
 
@@ -161,8 +155,6 @@ Level Mult = 1 + (Level - 1) / 59
 - Truncated to 4 decimal places
 - Range: 1.0 → 2.0
 
-✔ This matches the dominant modern community model
-
 ---
 
 ## 9.3 Anomaly Proficiency
@@ -183,8 +175,6 @@ Proficiency Mult = Proficiency × 0.01
 | Shock       | DOT    | 10       | 125%           |
 | Corruption  | DOT    | 20       | 62.5%          |
 
-✔ Matches widely accepted community tables
-
 ---
 
 ## 9.5 Disorder
@@ -196,7 +186,21 @@ Base:
 
 Modified by previous anomaly and time elapsed.
 
-✔ Matches current community formula sheets
+Approximate formula:
+```
+Disorder DMG =
+ATK
+× 4.5
+× (Remaining Duration / Total Duration)
+× DEF Multiplier
+× RES Multiplier
+× DMG Taken Multiplier
+```
+
+Where:
+
+Remaining Duration / Total Duration
+= portion of the previous anomaly still active when the new anomaly triggers.
 
 ---
 
@@ -207,8 +211,6 @@ Rupture damage excludes DEF:
 ```
 Damage = Sheer Force × Skill × DMG% × Sheer DMG% × RES × DMG Taken × Stun × Crit
 ```
-
-✔ Confirmed by community documentation
 
 ---
 
@@ -257,4 +259,3 @@ It prioritizes:
 > Consistency, reproducibility, and correctness for stat analysis
 
 rather than full in-game simulation.
-
