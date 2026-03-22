@@ -282,10 +282,10 @@ export class StatMeta {
 export class MarginalAnalyzer {
   static DEFAULTS_BY_KEY = {
     atk: { kind: 'flat', value: 0 },
-    dmgGenericPct: { kind: 'pct', value: 0 },
-    dmgAttrPct: { kind: 'pct', value: 30 },
+    dmgGenericPct: { kind: 'pct', value: 30 },
+    dmgAttrPct: { kind: 'pct', value: 0 },
     dmgSkillTypePct: { kind: 'pct', value: 0 },
-    dmgOtherPct: { kind: 'pct', value: 30 },
+    dmgOtherPct: { kind: 'pct', value: 0 },
     critRatePct: { kind: 'pct', value: 24 },
     critDmgPct: { kind: 'pct', value: 48 },
     penRatioPct: { kind: 'pct', value: 24 },
@@ -297,9 +297,9 @@ export class MarginalAnalyzer {
     dmgTakenPct: { kind: 'pct', value: 0 },
     dmgTakenOtherPct: { kind: 'pct', value: 0 },
     stunPct: { kind: 'pct', value: 30 },
-    anomProf: { kind: 'flat', value: 9 },
+    anomProf: { kind: 'flat', value: 92 },
     anomDmgPct: { kind: 'pct', value: 0 },
-    disorderDmgPct: { kind: 'pct', value: 5 },
+    disorderDmgPct: { kind: 'pct', value: 0 },
     sheerForce: { kind: 'flat', value: 0 },
     sheerDmgBonusPct: { kind: 'pct', value: 0 },
   };
