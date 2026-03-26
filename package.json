@@ -5,10 +5,10 @@
   "main": "app.js",
   "type": "module",
   "scripts": {
-    "test": "vitest --config tests/vitest.config.js",
-    "test:run": "vitest run --config tests/vitest.config.js",
-    "test:ui": "vitest --ui --config tests/vitest.config.js",
-    "test:coverage": "vitest run --config tests/vitest.config.js --coverage",
+    "test": "vitest run --config vitest.config.js",
+    "test:run": "vitest run --config vitest.config.js",
+    "test:ui": "vitest --ui --config vitest.config.js",
+    "test:coverage": "vitest run --config vitest.config.js --coverage",
     "pw": "playwright test --config=e2e/playwright.config.js",
     "pw:ui": "playwright test --config=e2e/playwright.config.js --ui",
     "test:e2e": "playwright test --config=e2e/playwright.config.js"

@@ -475,16 +475,16 @@ import { AppConfig, MathUtil, ZzzMath, StandardCalculator, AnomalyCalculator, Ru
       if (!s) return fallback;
       if (!/^[+\-\d.\s]+$/.test(s)) return fallback;
       const compact = s.replace(/\s+/g, "");
-      const parts = compact.split("+");
+      if (!compact || !/[\d.]/.test(compact)) return fallback;
+      if (/[^\d.+-]/.test(compact)) return fallback;
+      if (/^[+]/.test(compact) || /[+-]$/.test(compact) || /[+\-]{2,}/.test(compact.replace(/^-/, ""))) return fallback;
+
+      const normalized = compact.replace(/(?!^)-/g, "+-");
+      const parts = normalized.split("+");
       let total = 0;
       let sawValidPart = false;
-      for (let idx = 0; idx < parts.length; idx++) {
-        const part = parts[idx];
-        const isLast = idx === parts.length - 1;
-        if (!part) {
-          if (isLast && sawValidPart) break;
-          return fallback;
-        }
+      for (const part of parts) {
+        if (!part) continue;
         const n = Number(part);
         if (!Number.isFinite(n)) return fallback;
         total += n;
@@ -786,7 +786,9 @@ isStunned: false,
     /** @param {string} name */
     static safeFileName(name) {
       return (name || "zzz_build")
-        .replace(/[^a-z0-9 _\-]+/gi, "")
+        .normalize("NFKC")
+        .replace(/[\/:*?"<>|]+/g, "")
+        .replace(/[. ]+$/g, "")
         .trim()
         .replace(/\s+/g, "_")
         .slice(0, 60) || "zzz_build";
@@ -1070,12 +1072,14 @@ isStunned: false,
 
   class NumericInputGuard {
     static PLUS_ALLOWED_IDS = new Set([
-      "atk","critRatePct","critDmgPct","dmgGenericPct","dmgAttrPct","dmgSkillTypePct","dmgOtherPct",
+      "atk","baseAtk","critRatePct","critDmgPct","dmgGenericPct","dmgAttrPct","dmgSkillTypePct","dmgOtherPct",
       "penRatioPct","penFlat","defIgnorePct","resIgnorePct","anomProf","anomDmgPct","sheerForce","sheerDmgBonusPct"
     ]);
 
     static MINUS_ALLOWED_IDS = new Set([
-      "enemyResPhysicalPct","enemyResFirePct","enemyResIcePct","enemyResElectricPct","enemyResEtherPct"
+      "atk","critDmgPct","dmgGenericPct","dmgAttrPct","dmgSkillTypePct","dmgOtherPct",
+      "penRatioPct","penFlat","defIgnorePct","resIgnorePct","anomProf","anomDmgPct","sheerForce","sheerDmgBonusPct",
+      "enemyResPhysicalPct","enemyResFirePct","enemyResIcePct","enemyResElectricPct","enemyResEtherPct","resReductionPct"
     ]);
 
     /** @param {HTMLInputElement} el */
@@ -1089,6 +1093,11 @@ isStunned: false,
     }
 
     /** @param {HTMLInputElement} el */
+    static allowsExpression(el) {
+      return NumericInputGuard.allowsPlus(el) || NumericInputGuard.allowsMinus(el);
+    }
+
+    /** @param {HTMLInputElement} el */
     static integerOnly(el) {
       return el.dataset.integerOnly === "true";
     }
@@ -1097,33 +1106,69 @@ isStunned: false,
     static sanitize(el, value) {
       const allowPlus = NumericInputGuard.allowsPlus(el);
       const allowMinus = NumericInputGuard.allowsMinus(el);
+      const allowExpression = NumericInputGuard.allowsExpression(el);
       const integerOnly = NumericInputGuard.integerOnly(el);
       let s = String(value ?? "");
-      s = s.replace(/,/g, "").replace(/\s+/g, allowPlus ? "" : "");
+      s = s.replace(/,/g, "").replace(/\s+/g, "");
       s = s.replace(/[eE]/g, "");
-      if (allowPlus) {
-        s = s.replace(/[^0-9.+]/g, "");
+
+      if (allowExpression) {
+        s = s.replace(integerOnly ? /[^0-9+\-]/g : /[^0-9.+\-]/g, "");
         s = s.replace(/^\++/, "");
-        s = s.replace(/\+{2,}/g, "+");
-        const parts = s.split("+");
-        const cleaned = parts.map((part) => {
-          if (!part) return "";
-          if (integerOnly) return part.replace(/\./g, "");
-          const firstDot = part.indexOf(".");
-          if (firstDot === -1) return part;
-          return part.slice(0, firstDot + 1) + part.slice(firstDot + 1).replace(/\./g, "");
-        });
-        s = cleaned.join("+").replace(/\+{2,}/g, "+");
-        if (s.startsWith("+")) s = s.slice(1);
-        return s;
+        if (!allowPlus) s = s.replace(/\+/g, "");
+        if (!allowMinus) s = s.replace(/-/g, "");
+
+        let out = "";
+        let part = "";
+        let hasLeadingMinus = false;
+        const pushPart = () => {
+          if (!part) return;
+          if (integerOnly) {
+            part = part.replace(/\./g, "");
+          } else {
+            const body = hasLeadingMinus ? part.slice(1) : part;
+            const firstDot = body.indexOf(".");
+            if (firstDot !== -1) {
+              const cleanedBody = body.slice(0, firstDot + 1) + body.slice(firstDot + 1).replace(/\./g, "");
+              part = hasLeadingMinus ? `-${cleanedBody}` : cleanedBody;
+            }
+          }
+          out += part;
+          part = "";
+          hasLeadingMinus = false;
+        };
+
+        for (let idx = 0; idx < s.length; idx++) {
+          const ch = s[idx];
+          if (ch === "+") {
+            if (allowPlus && part) {
+              pushPart();
+              out += "+";
+            }
+            continue;
+          }
+          if (ch === "-") {
+            if (allowMinus && !part) {
+              part = "-";
+              hasLeadingMinus = true;
+              continue;
+            }
+            if (allowMinus && part) {
+              pushPart();
+              part = "-";
+              hasLeadingMinus = true;
+            }
+            continue;
+          }
+          part += ch;
+        }
+        pushPart();
+        return out;
       }
-      s = allowMinus ? s.replace(/[^0-9.-]/g, "") : s.replace(/[^0-9.]/g, "");
-      if (allowMinus) {
-        s = s.replace(/(?!^)-/g, "");
-      }
+
+      s = s.replace(/[^0-9.]/g, "");
       if (integerOnly) return s.replace(/\./g, "");
-      const startIndex = (allowMinus && s.startsWith("-")) ? 1 : 0;
-      const firstDot = s.indexOf(".", startIndex);
+      const firstDot = s.indexOf(".");
       if (firstDot === -1) return s;
       return s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, "");
     }
@@ -1142,11 +1187,10 @@ isStunned: false,
         if (!data) return;
         const allowPlus = NumericInputGuard.allowsPlus(el);
         const allowMinus = NumericInputGuard.allowsMinus(el);
-        const allowedPattern = allowPlus
-          ? (NumericInputGuard.integerOnly(el) ? /^[0-9+]+$/ : /^[0-9.+]+$/)
-          : allowMinus
-            ? (NumericInputGuard.integerOnly(el) ? /^[0-9-]+$/ : /^[0-9.-]+$/)
-            : (NumericInputGuard.integerOnly(el) ? /^[0-9]+$/ : /^[0-9.]+$/);
+        const allowExpression = NumericInputGuard.allowsExpression(el);
+        const allowedPattern = allowExpression
+          ? (NumericInputGuard.integerOnly(el) ? /^[0-9+\-]+$/ : /^[0-9.+\-]+$/)
+          : (NumericInputGuard.integerOnly(el) ? /^[0-9]+$/ : /^[0-9.]+$/);
         if (!allowedPattern.test(data)) e.preventDefault();
       });
       el.addEventListener("input", () => {
